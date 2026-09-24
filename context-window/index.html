@@ -119,6 +119,14 @@
   .menu-card button:focus-visible, .menu-card input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
   .danger { color: var(--noise) !important; border-color: #6a3a36 !important; }
   .menu-note { font-size: 12px; color: var(--muted); margin: 0; }
+  .help { margin: 0; display: grid; gap: 4px 0; }
+  .help dt { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .help dt:first-child { margin-top: 0; }
+  .help dd { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+  .help .hn { font-weight: 500; color: var(--text); }
+  .help .hn.tool { color: var(--tool); } .help .hn.compact { color: var(--clawd); } .help .hn.sub { color: var(--ally); } .help .hn.clear { color: #5fb3c4; }
+  .help kbd { font: 11px "IBM Plex Mono", monospace; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+  .help .hc { font-size: 12px; color: var(--tool); font-variant-numeric: tabular-nums; }
   #portrait { width: 72px; height: 72px; image-rendering: pixelated; background: #1f2830; border-radius: 4px; }
   .dialog .who { font-family: "Silkscreen", monospace; font-size: 14px; color: #9fc4d8; margin: 0 0 4px; }
   .dialog .say { margin: 0; min-height: 3em; font-size: 14px; line-height: 1.45; color: var(--text); }
@@ -273,6 +281,7 @@
       <span><span data-i18n="floor">Floor</span> <b id="floor">1</b></span>
       <span><span data-i18n="score">Score</span> <b id="score">0</b></span>
       <span><span data-i18n="best">Best</span> <b id="best">0</b></span>
+      <button class="link" id="help-btn" type="button" aria-haspopup="dialog" data-i18n-aria="howTo" aria-label="How to play">?</button>
       <button class="link" id="menu-btn" type="button" aria-haspopup="dialog">⚙ <span data-i18n="menu">Menu</span></button>
     </div>
   </div>
@@ -473,16 +482,27 @@
   const I18N = {
     en: {
       floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off', musicOn: 'Music: on', musicOff: 'Music: off', track: 'Track', trackAuto: 'Auto',
+      howTo: 'How to play', h_moveName: 'Move / attack',
+      helpIntro: 'Your context window is your health. Every action below either fills it or saves it. Moving costs nothing.',
+      hx_move: 'Arrows, WASD, a swipe on the board or the d-pad. Hold to run. Step into an enemy to hit it for 1 damage. Step into an item to pick it up.',
+      hx_wait: 'Skip a turn. Enemies still act, so it is useful for letting them come to you.',
+      hx_read: 'Dispels every hallucination within 4 tiles, including ones disguised as items. You start with it.',
+      hx_grep: 'Reveals the whole floor for 12 turns: map, enemies and the git push stairs.',
+      hx_bash: 'Deals 2 damage to all 8 tiles around you. 1 time in 10 you get Permission denied and lose the turn.',
+      hx_compact: 'Squeezes damage noise and tool output: 70% the first time, 8% less each time after, never below 40%. Items may turn into summaries (half the size, half the power). Recharges for 15 turns. Fires on its own when the context hits 100% and it is ready.',
+      hx_sub: 'One use. Spawns a clone next to you that hunts enemies for 12 turns. Its fights never touch your context.',
+      hx_clear: 'One use. Wipes the whole context to zero, but you forget every item too.',
+      helpFoot: 'Tools and items are found on floors; greyed-out buttons mean you don\u2019t have that one yet. Prompt Cache lowers the costs shown on the buttons.',
       menu: 'Menu', settings: 'Settings', sfxVol: 'Sound effects', musVol: 'Music', on: 'On', off: 'Off',
       resume: 'Resume', back: 'Back', restart: 'New session', restartConfirm: 'Lose progress? Click again',
-      menuKeys: 'Esc or P opens and closes this menu. M toggles sound, N music, T switches the track.',
+      menuKeys: 'Esc or P opens and closes this menu, H opens How to play. M toggles sound, N music, T switches the track.',
       ctx: 'Context', ctxAria: 'Context window', gameAria: 'Game board', ready: 'ready',
       inTurns: n => `in ${n} ${n === 1 ? 'turn' : 'turns'}`, eff: p => `· ${p}% compression`,
       grepLeft: n => `Grep ${n} more`, allyLeft: n => `subagent ${n}`, frozen: '429: frozen',
       lgSys: 'system prompt', lgItems: 'items', lgOut: 'tool output', lgNoise: 'damage noise',
       hActions: 'Actions', hLog: 'Session log', hInv: 'In context', wait: 'Wait a turn', space: 'Space', padWait: 'wait',
       waitAria: 'Wait', up: 'Up', left: 'Left', right: 'Right', down: 'Down',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>Esc</kbd> menu.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>Esc</kbd> menu, <kbd>H</kbd> how to play.',
       footer: 'Fan game. Not affiliated with or made by Anthropic.',
       daily: d => `Daily ${d}`, invEmpty: 'Empty. Items are scattered across floors.', forget: 'Forget',
       forgetTitle: n => `Remove ${n} from context`, summary: 'summary', notFound: n => `${n} not found yet`, perk: n => `Start with ${n}`,
@@ -587,16 +607,27 @@
     },
     ru: {
       floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл', track: 'Трек', trackAuto: 'Авто',
+      howTo: 'Как играть', h_moveName: 'Ход / атака',
+      helpIntro: 'Контекстное окно — это твоё здоровье. Каждое действие ниже либо заполняет его, либо спасает. Ходить можно бесплатно.',
+      hx_move: 'Стрелки, WASD, свайп по полю или крестовина. Удержание — бег. Шаг во врага — удар на 1 единицу урона. Шаг на предмет — подобрать его.',
+      hx_wait: 'Пропустить ход. Враги при этом ходят, так что это удобно, чтобы подпустить их к себе.',
+      hx_read: 'Рассеивает все галлюцинации в радиусе 4 клеток, в том числе замаскированные под предметы. Есть с самого начала.',
+      hx_grep: 'Показывает весь этаж на 12 ходов: карту, врагов и лестницу git push.',
+      hx_bash: 'Наносит 2 урона по всем 8 клеткам вокруг тебя. В 1 случае из 10 — Permission denied, и ход потерян.',
+      hx_compact: 'Сжимает шум от урона и вывод инструментов: в первый раз на 70%, дальше каждый раз на 8% слабее, но не меньше 40%. Предметы могут превратиться в саммари (вдвое меньше места и вдвое слабее). Перезарядка 15 ходов. Срабатывает сама, когда контекст дошёл до 100%, если готова.',
+      hx_sub: 'Одноразовый. Рядом появляется клон, который 12 ходов сам ищет врагов. Его драки не тратят твой контекст.',
+      hx_clear: 'Одноразовый. Обнуляет весь контекст, но все предметы тоже забываются.',
+      helpFoot: 'Инструменты и предметы лежат на этажах; бледная кнопка значит, что этого у тебя пока нет. Prompt Cache снижает цены, которые показаны на кнопках.',
       menu: 'Меню', settings: 'Настройки', sfxVol: 'Звуковые эффекты', musVol: 'Музыка', on: 'Вкл', off: 'Выкл',
       resume: 'Продолжить', back: 'Назад', restart: 'Новая сессия', restartConfirm: 'Потерять прогресс? Нажми ещё раз',
-      menuKeys: 'Esc или P открывает и закрывает меню. M — звук, N — музыка, T — сменить трек.',
+      menuKeys: 'Esc или P открывает и закрывает меню, H — «Как играть». M — звук, N — музыка, T — сменить трек.',
       ctx: 'Контекст', ctxAria: 'Контекстное окно', gameAria: 'Игровое поле', ready: 'готова',
       inTurns: n => `через ${n} ${plural(n, 'ход', 'хода', 'ходов')}`, eff: p => `· сжатие ${p}%`,
       grepLeft: n => `Grep ещё ${n}`, allyLeft: n => `сабагент ${n}`, frozen: '429: заморожен',
       lgSys: 'системный промпт', lgItems: 'предметы', lgOut: 'вывод инструментов', lgNoise: 'шум от урона',
       hActions: 'Действия', hLog: 'Лог сессии', hInv: 'В контексте', wait: 'Ждать ход', space: 'Пробел', padWait: 'ждать',
       waitAria: 'Ждать', up: 'Вверх', left: 'Влево', right: 'Вправо', down: 'Вниз',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>Esc</kbd> — меню.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>Esc</kbd> — меню, <kbd>H</kbd> — как играть.',
       footer: 'Фанатская игра. Не связана с Anthropic и не является её продуктом.',
       daily: d => `Ежедневный ${d}`, invEmpty: 'Пусто. Предметы лежат на этажах.', forget: 'Забыть',
       forgetTitle: n => `Убрать ${n} из контекста`, summary: 'саммари', notFound: n => `${n} ещё не найден`, perk: n => `Старт с ${n}`,
@@ -2449,6 +2480,7 @@
         <button class="link" type="button" data-lang="en" aria-pressed="${LANG === 'en'}">English</button>
         <button class="link" type="button" data-lang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
         <button class="link" type="button" id="card-settings">⚙ ${tr('settings')}</button>
+        <button class="link" type="button" id="card-help">? ${tr('howTo')}</button>
       </div>`;
   }
   function showStart() {
@@ -2474,7 +2506,9 @@
       if (again) again.focus({ preventScroll: true });
     }));
     const cs = el('card-settings');
-    if (cs) cs.addEventListener('click', openMenu);
+    if (cs) cs.addEventListener('click', () => openMenu());
+    const ch = el('card-help');
+    if (ch) ch.addEventListener('click', () => openMenu('help'));
     overlayMode = 'start';
     wireButtons();
   }
@@ -2554,6 +2588,7 @@
       <div class="menu-actions">
         <button type="button" class="primary" id="m-resume">${inGame ? tr('resume') : tr('back')}</button>
         ${inGame ? `<button type="button" class="opt danger" id="m-restart">${tr('restart')}</button>` : ''}
+        <button type="button" class="opt" id="m-help">? ${tr('howTo')}</button>
         <button type="button" class="opt" id="m-hints">${tr('hintsReset')}</button>
       </div>
       <p class="menu-note">${tr('menuKeys')}</p>`;
@@ -2586,17 +2621,47 @@
       closeMenu();
       start(G.mode);
     });
+    el('m-help').addEventListener('click', () => { renderHelp(true); });
     const hb = el('m-hints');
     hb.addEventListener('click', () => { hintsSeen = {}; store.set('cw-hints', '{}'); hb.textContent = tr('hintsOn'); hb.disabled = true; });
   }
-  function openMenu() {
-    if (menuOpen()) return;
+  function renderHelp(fromMenu) {
+    const cost = id => (G ? toolCost(id) : ITEMS[id].cost);
+    const rows = [
+      ['move', tr('h_moveName'), '←↑↓→ / WASD', '', ''],
+      ['wait', tr('wait'), tr('space'), '', ''],
+      ['read', 'Read', 'R', `+${cost('read')}k`, 'tool'],
+      ['grep', 'Grep', 'G', `+${cost('grep')}k`, 'tool'],
+      ['bash', 'Bash', 'B', `+${cost('bash')}k`, 'tool'],
+      ['compact', '/compact', 'C', '', 'compact'],
+      ['sub', 'Subagent', 'Q', '', 'sub'],
+      ['clear', '/clear', 'X', '', 'clear'],
+    ];
+    menuCard.innerHTML = `
+      <h2 id="menu-title">${tr('howTo')}</h2>
+      <p class="menu-note">${tr('helpIntro')}</p>
+      <dl class="help">
+        ${rows.map(([k, name, key, c, cls]) => `
+          <dt><span class="hn ${cls}">${name}</span><kbd>${key}</kbd>${c ? `<span class="hc">${c}</span>` : ''}</dt>
+          <dd>${tr('hx_' + k)}</dd>`).join('')}
+      </dl>
+      <p class="menu-note">${tr('helpFoot')}</p>
+      <div class="menu-actions">
+        <button type="button" class="primary" id="m-help-back">${fromMenu ? tr('back') : (G && G.started && !G.over ? tr('resume') : tr('close'))}</button>
+      </div>`;
+    el('m-help-back').addEventListener('click', () => { if (fromMenu) { renderMenu(); el('m-help').focus({ preventScroll: true }); } else closeMenu(); });
+    el('m-help-back').focus({ preventScroll: true });
+    menuCard.scrollTop = 0; menuEl.scrollTop = 0;
+  }
+  function openMenu(page) {
+    if (menuOpen()) { if (page === 'help') renderHelp(false); return; }
     audioOn();
     held.length = 0; if (G) G.queue = null;
     restartArmed = false;
     menuReturnFocus = document.activeElement;
-    renderMenu();
     menuEl.hidden = false;
+    if (page === 'help') { renderHelp(false); return; }
+    renderMenu();
     el('m-resume').focus({ preventScroll: true });
   }
   function closeMenu() {
@@ -2663,7 +2728,7 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     audioOn();
     if (menuOpen()) {
-      if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); closeMenu(); }
+      if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'KeyH') { e.preventDefault(); closeMenu(); }
       return;
     }
     if (DLG.open) {
@@ -2673,6 +2738,7 @@
       return;
     }
     if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); openMenu(); return; }
+    if (e.code === 'KeyH') { e.preventDefault(); openMenu('help'); return; }
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyN') { toggleMusic(); return; }
     if (e.code === 'KeyT') { cycleTrack(); return; }
@@ -2726,7 +2792,8 @@
     else act(id);
   }));
   el('dlg-close').addEventListener('click', advanceDialog);
-  el('menu-btn').addEventListener('click', openMenu);
+  el('menu-btn').addEventListener('click', () => openMenu());
+  el('help-btn').addEventListener('click', () => openMenu('help'));
 
   // ---------- boot ----------
   applyStatic();
