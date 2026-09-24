@@ -1,5 +1,7 @@
 # Context Window
 
+![Clawd fights bugs and infinite loops while the context bar fills up, compacts, and finally overflows](media/gameplay.gif)
+
 A fan-made, turn-based browser roguelike about **Clawd**, the Claude Code mascot.
 Clawd has no health bar. He has a **200k-token context window**, and everything fills it:
 damage becomes noise, tools add output, items take up space. Overflow while `/compact` is
