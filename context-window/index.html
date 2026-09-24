@@ -17,6 +17,7 @@
     --ok: #8fbf73;
     --sys: #6b5f55;
     --ghost: #b9a7e6;
+    --ally: #7fb3d5;
   }
   * { box-sizing: border-box; }
   body {
@@ -37,8 +38,15 @@
     line-height: 1.1;
     color: var(--clawd);
   }
-  .meta { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
   .meta b { color: var(--text); font-weight: 500; }
+  .mode { color: var(--tool); }
+  .link {
+    font: 13px "IBM Plex Mono", monospace; color: var(--muted);
+    background: none; border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; cursor: pointer;
+  }
+  .link:hover { color: var(--text); }
+  .link:focus-visible { outline: 2px solid var(--clawd); outline-offset: 2px; }
 
   .ctx { display: grid; gap: 6px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
   .ctx-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -55,6 +63,7 @@
   .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
   .cd-ready { color: var(--ok); }
   .cd-wait { color: var(--muted); }
+  .status-extra { color: var(--muted); }
 
   .main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
   @media (max-width: 820px) { .main { grid-template-columns: 1fr; } }
@@ -62,30 +71,52 @@
   .viewport { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #0d0b0a; }
   #game { display: block; width: 100%; height: auto; aspect-ratio: 264 / 216; image-rendering: pixelated; touch-action: none; }
 
+  .hint {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    width: min(92%, 460px);
+    padding: 8px 12px;
+    font-size: 13px; line-height: 1.4;
+    color: var(--text); background: rgba(32, 27, 23, 0.94);
+    border: 1px solid var(--clawd); border-radius: 6px;
+    pointer-events: none;
+  }
+  .hint[hidden] { display: none; }
+  .hint b { color: var(--clawd); font-weight: 500; }
+
   .overlay {
     position: absolute; inset: 0;
     display: grid; place-items: center;
     padding: 16px;
-    background: rgba(13, 11, 10, 0.82);
+    background: rgba(13, 11, 10, 0.86);
     overflow-y: auto;
   }
   .overlay[hidden] { display: none; }
-  .card { max-width: 440px; display: grid; gap: 12px; }
+  .card { max-width: 460px; display: grid; gap: 12px; }
   .card h2 { margin: 0; font-family: "Silkscreen", monospace; font-weight: 400; font-size: 24px; line-height: 1.15; color: var(--clawd); text-wrap: balance; }
   .card h2.dead { color: var(--noise); }
   .card p { margin: 0; color: var(--muted); }
   .card ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; font-size: 13px; }
   .card ul b { color: var(--text); font-weight: 500; }
-  .stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .card .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .card .lang { font-size: 13px; color: var(--muted); }
+  .card .lang [aria-pressed="true"] { color: var(--clawd); border-color: var(--clawd); }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; font-size: 13px; font-variant-numeric: tabular-nums; margin: 0; }
   .stats dt { color: var(--muted); }
   .stats dd { margin: 0; text-align: right; }
-  .primary {
-    justify-self: start;
+  .perks { list-style: none; padding: 0 !important; font-size: 12px !important; }
+  .perks li { display: flex; justify-content: space-between; gap: 12px; }
+  .perks li.on { color: var(--ok); }
+  .perks li.on span:first-child::before { content: "✓ "; }
+  .perks li:not(.on) span:first-child::before { content: "· "; }
+  .perks span:last-child { font-variant-numeric: tabular-nums; }
+  .new-unlock { color: var(--ok) !important; }
+  .primary, .secondary {
     font: 500 14px "IBM Plex Mono", monospace;
-    color: #1a120e; background: var(--clawd);
-    border: 0; border-radius: 6px; padding: 10px 16px; cursor: pointer;
+    border-radius: 6px; padding: 10px 16px; cursor: pointer;
   }
-  .primary:focus-visible, .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .primary { color: #1a120e; background: var(--clawd); border: 0; }
+  .secondary { color: var(--tool); background: none; border: 1px solid #5a4a2e; }
+  .primary:focus-visible, .secondary:focus-visible, .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
   .side { display: grid; gap: 12px; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 8px; }
@@ -105,6 +136,7 @@
   .btn.tool b { color: var(--tool); font-weight: 500; }
   .btn.compact b { color: var(--clawd); font-weight: 500; }
   .btn.clear b { color: #5fb3c4; font-weight: 500; }
+  .btn.sub b { color: var(--ally); font-weight: 500; }
 
   .pad { display: grid; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 44px); gap: 4px; justify-content: center; }
   .pad .btn { justify-items: center; align-items: center; padding: 0; font-size: 16px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
@@ -129,11 +161,13 @@
   .log .ok { color: var(--ok); }
   .log .sys { color: var(--clawd); }
   .log .ghost { color: var(--ghost); }
+  .log .ally { color: var(--ally); }
   .log li:last-child { color: var(--text); }
   .log li.tool:last-child { color: var(--tool); } .log li.hit:last-child { color: var(--noise); }
-  .log li.ok:last-child { color: var(--ok); } .log li.sys:last-child { color: var(--clawd); } .log li.ghost:last-child { color: var(--ghost); }
+  .log li.ok:last-child { color: var(--ok); } .log li.sys:last-child { color: var(--clawd); }
+  .log li.ghost:last-child { color: var(--ghost); } .log li.ally:last-child { color: var(--ally); }
 
-  .keys { font-size: 12px; color: var(--muted); }
+  .keys { font-size: 12px; color: var(--muted); margin: 0; }
   .keys kbd { font: 11px "IBM Plex Mono", monospace; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; color: var(--text); }
   footer { font-size: 12px; color: var(--muted); }
 </style>
@@ -142,31 +176,34 @@
   <div class="top">
     <h1>Context Window</h1>
     <div class="meta">
-      <span>Этаж <b id="floor">1</b></span>
-      <span>Счёт <b id="score">0</b></span>
-      <span>Рекорд <b id="best">0</b></span>
+      <span class="mode" id="mode"></span>
+      <span><span data-i18n="floor">Floor</span> <b id="floor">1</b></span>
+      <span><span data-i18n="score">Score</span> <b id="score">0</b></span>
+      <span><span data-i18n="best">Best</span> <b id="best">0</b></span>
+      <button class="link" id="mute" type="button">Sound: on</button>
     </div>
   </div>
 
-  <section class="ctx" aria-label="Контекстное окно">
+  <section class="ctx" data-i18n-aria="ctxAria" aria-label="Context window">
     <div class="ctx-row">
-      <span>Контекст <span class="val" id="ctx-val">16k / 200k</span></span>
-      <span>/compact: <span id="cd" class="cd-ready">готова</span><span id="grep-st"></span></span>
+      <span><span data-i18n="ctx">Context</span> <span class="val" id="ctx-val">16k / 200k</span></span>
+      <span>/compact: <span id="cd" class="cd-ready">ready</span> <span class="status-extra" id="eff"></span><span class="status-extra" id="extra"></span></span>
     </div>
     <div class="bar" aria-hidden="true">
       <span class="seg-sys" id="seg-sys"></span><span class="seg-items" id="seg-items"></span><span class="seg-out" id="seg-out"></span><span class="seg-noise" id="seg-noise"></span>
     </div>
     <div class="legend">
-      <span><i style="background:var(--sys)"></i>системный промпт <span id="lg-sys">12k</span></span>
-      <span><i style="background:var(--clawd)"></i>предметы <span id="lg-items">4k</span></span>
-      <span><i style="background:var(--tool)"></i>вывод инструментов <span id="lg-out">0k</span></span>
-      <span><i style="background:var(--noise)"></i>шум от урона <span id="lg-noise">0k</span></span>
+      <span><i style="background:var(--sys)"></i><span data-i18n="lgSys">system prompt</span> <span id="lg-sys">12k</span></span>
+      <span><i style="background:var(--clawd)"></i><span data-i18n="lgItems">items</span> <span id="lg-items">4k</span></span>
+      <span><i style="background:var(--tool)"></i><span data-i18n="lgOut">tool output</span> <span id="lg-out">0k</span></span>
+      <span><i style="background:var(--noise)"></i><span data-i18n="lgNoise">damage noise</span> <span id="lg-noise">0k</span></span>
     </div>
   </section>
 
   <div class="main">
     <div class="viewport">
-      <canvas id="game" width="1056" height="864" aria-label="Игровое поле"></canvas>
+      <canvas id="game" width="1056" height="864" data-i18n-aria="gameAria" aria-label="Game board"></canvas>
+      <div class="hint" id="hint" hidden></div>
       <div class="overlay" id="overlay">
         <div class="card" id="card"></div>
       </div>
@@ -174,48 +211,50 @@
 
     <aside class="side">
       <section class="panel">
-        <h3>Действия</h3>
+        <h3 data-i18n="hActions">Actions</h3>
         <div class="tools">
-          <button class="btn tool" id="b-read" type="button"><b>Read</b><small>R · +3k</small></button>
-          <button class="btn tool" id="b-grep" type="button"><b>Grep</b><small>G · +8k</small></button>
-          <button class="btn tool" id="b-bash" type="button"><b>Bash</b><small>B · +10k</small></button>
+          <button class="btn tool" id="b-read" type="button"><b>Read</b><small>R</small></button>
+          <button class="btn tool" id="b-grep" type="button"><b>Grep</b><small>G</small></button>
+          <button class="btn tool" id="b-bash" type="button"><b>Bash</b><small>B</small></button>
           <button class="btn compact" id="b-compact" type="button"><b>/compact</b><small>C</small></button>
-          <button class="btn" id="b-wait" type="button"><b>Ждать</b><small>Пробел</small></button>
+          <button class="btn sub" id="b-sub" type="button"><b>Subagent</b><small>Q</small></button>
           <button class="btn clear" id="b-clear" type="button"><b>/clear</b><small>X</small></button>
         </div>
+        <button class="btn" id="b-wait" type="button"><b data-i18n="wait">Wait a turn</b><small data-i18n="space">Space</small></button>
       </section>
 
       <section class="panel pad-panel">
         <div class="pad">
-          <button class="btn up" type="button" data-dir="0,-1" aria-label="Вверх">▲</button>
-          <button class="btn left" type="button" data-dir="-1,0" aria-label="Влево">◀</button>
-          <button class="btn wait" type="button" data-wait="1" aria-label="Ждать">ждать</button>
-          <button class="btn right" type="button" data-dir="1,0" aria-label="Вправо">▶</button>
-          <button class="btn down" type="button" data-dir="0,1" aria-label="Вниз">▼</button>
+          <button class="btn up" type="button" data-dir="0,-1" data-i18n-aria="up" aria-label="Up">▲</button>
+          <button class="btn left" type="button" data-dir="-1,0" data-i18n-aria="left" aria-label="Left">◀</button>
+          <button class="btn wait" type="button" data-wait="1" data-i18n-aria="waitAria" aria-label="Wait"><span data-i18n="padWait">wait</span></button>
+          <button class="btn right" type="button" data-dir="1,0" data-i18n-aria="right" aria-label="Right">▶</button>
+          <button class="btn down" type="button" data-dir="0,1" data-i18n-aria="down" aria-label="Down">▼</button>
         </div>
       </section>
 
       <section class="panel">
-        <h3>Лог сессии</h3>
+        <h3 data-i18n="hLog">Session log</h3>
         <ul class="log" id="log" aria-live="polite"></ul>
       </section>
 
       <section class="panel">
-        <h3>В контексте</h3>
+        <h3 data-i18n="hInv">In context</h3>
         <ul class="inv" id="inv"></ul>
       </section>
 
-      <p class="keys"><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака.</p>
+      <p class="keys" data-i18n-html="keysHelp"></p>
     </aside>
   </div>
 
-  <footer>Фанатская игра. Не связана с Anthropic и не является её продуктом.</footer>
+  <footer data-i18n="footer">Fan game. Not affiliated with or made by Anthropic.</footer>
 </div>
 
 <script>
 (() => {
   'use strict';
   const $ = s => document.querySelector(s);
+  const el = id => document.getElementById(id);
 
   // ---------- constants ----------
   const TS = 24, VW = 11, VH = 9, LW = VW * TS, LH = VH * TS, S = 4;
@@ -224,34 +263,65 @@
   const COL = {
     clawd: '#d77757', bg: '#120f0d', void: '#0d0b0a', noise: '#e0605a', tool: '#e2b457',
     ok: '#8fbf73', white: '#fff4ea', bug: '#7fb069', ghost: '#b9a7e6', loop: '#6fa8dc',
-    merge: '#b8566b', mergeHi: '#d77a8e', clear: '#5fb3c4', dust: '#6b5a4c', flash: '#f0a58a'
+    merge: '#b8566b', mergeHi: '#d77a8e', clear: '#5fb3c4', dust: '#6b5a4c', flash: '#f0a58a',
+    ally: '#7fb3d5', flakyOk: '#8fbf73', flakyBad: '#e0605a', limiter: '#d9a441',
+    stone: '#3d3833', stoneHi: '#57504a', stoneLo: '#26221f'
   };
 
   const ITEMS = {
-    read:     { name: 'Read', kind: 'tool', size: 4, cost: 3, desc: s => `Рассеивает галлюцинации в радиусе ${s ? 2 : 4}` },
-    grep:     { name: 'Grep', kind: 'tool', size: 8, cost: 8, desc: s => `Показывает весь этаж на ${s ? 6 : 12} ходов` },
-    bash:     { name: 'Bash', kind: 'tool', size: 12, cost: 10, desc: s => `Урон ${s ? 1 : 2} по всем соседним клеткам` },
-    claudemd: { name: 'CLAUDE.md', kind: 'passive', size: 10, desc: () => 'Компакция не сжимает инструменты' },
-    clear:    { name: '/clear', kind: 'consumable', size: 2, desc: () => 'Обнуляет контекст вместе с предметами' },
-    cache:    { name: 'Cache Hit', kind: 'instant', size: 0, desc: () => '−25k шума' },
+    read:     { name: 'Read', kind: 'tool', size: 4, cost: 3, key: 'R', desc: s => tr('d_read', s) },
+    grep:     { name: 'Grep', kind: 'tool', size: 8, cost: 8, key: 'G', desc: s => tr('d_grep', s) },
+    bash:     { name: 'Bash', kind: 'tool', size: 12, cost: 10, key: 'B', desc: s => tr('d_bash', s) },
+    claudemd: { name: 'CLAUDE.md', kind: 'passive', size: 10, desc: s => tr('d_claudemd', s) },
+    thinking: { name: 'Extended Thinking', kind: 'passive', size: 8, desc: s => tr('d_thinking', s) },
+    pcache:   { name: 'Prompt Cache', kind: 'passive', size: 6, desc: s => tr('d_pcache', s) },
+    subagent: { name: 'Subagent', kind: 'consumable', size: 3, key: 'Q', desc: s => tr('d_subagent', s) },
+    clear:    { name: '/clear', kind: 'consumable', size: 2, key: 'X', desc: s => tr('d_clear', s) },
+    cache:    { name: 'Cache Hit', kind: 'instant', size: 0, desc: s => tr('d_cache', s) },
   };
   const FOES = {
-    bug:   { name: 'Bug', hp: 1, dmg: 8, score: 10 },
-    ghost: { name: 'Hallucination', hp: 2, dmg: 14, score: 15 },
-    mimic: { name: 'Hallucination', hp: 2, dmg: 14, score: 15 },
-    loop:  { name: 'Infinite Loop', hp: 2, dmg: 6, score: 15 },
-    merge: { name: 'Merge Conflict', hp: 1, dmg: 10, score: 20 },
+    bug:     { name: 'Bug', hp: 1, dmg: 10, score: 10 },
+    ghost:   { name: 'Hallucination', hp: 2, dmg: 16, score: 15 },
+    mimic:   { name: 'Hallucination', hp: 2, dmg: 16, score: 15 },
+    loop:    { name: 'Infinite Loop', hp: 2, dmg: 7, score: 15 },
+    merge:   { name: 'Merge Conflict', hp: 1, dmg: 12, score: 20 },
+    flaky:   { name: 'Flaky Test', hp: 2, dmg: 9, score: 20 },
+    limiter: { name: 'Rate Limiter', hp: 2, dmg: 4, score: 25 },
+    module:  { name: 'Legacy Monolith', hp: 5, dmg: 18, score: 40 },
   };
+  const HP_STEP = { bug: 3, ghost: 4, loop: 4, merge: 5, flaky: 4, limiter: 5 };
+  const PERKS = [
+    { at: 400, item: 'grep' },
+    { at: 1200, item: 'subagent' },
+    { at: 2500, item: 'pcache' },
+    { at: 4500, item: 'claudemd' },
+  ];
+  const perkLabel = p => tr('perk', ITEMS[p.item].name);
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
+  // ---------- rng ----------
+  let rng = Math.random;
+  function seedRng(seed) {
+    let a = seed >>> 0;
+    rng = () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const ri = (a, b) => a + Math.floor(rng() * (b - a + 1));
+  const chance = p => rng() < p;
+  const pick = a => a[Math.floor(rng() * a.length)];
+  // visual-only randomness, never affects the run
+  const vr = (a, b) => a + Math.random() * (b - a);
+
   // ---------- utils ----------
-  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  const rand = (a, b) => a + Math.random() * (b - a);
-  const pick = a => a[Math.floor(Math.random() * a.length)];
   const idx = (x, y) => y * MW + x;
   const inb = (x, y) => x >= 0 && y >= 0 && x < MW && y < MH;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ease = k => { k = clamp(k, 0, 1); return 1 - (1 - k) * (1 - k); };
+  const manh = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const hash = (x, y) => {
     let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -261,9 +331,265 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
   };
+  function plural(n, a, b, c) { const m = n % 10, h = n % 100; if (m === 1 && h !== 11) return a; if (m >= 2 && m <= 4 && (h < 10 || h >= 20)) return b; return c; }
+  function today() {
+    const d = new Date();
+    return { seed: d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(), label: `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}` };
+  }
+
+  // ---------- persistent ----------
+  let best = parseInt(store.get('cw-best') || '0', 10) || 0;
+  let commits = parseInt(store.get('cw-meta') || '0', 10) || 0;
+  let muted = store.get('cw-mute') === '1';
+  let hintsSeen = {};
+  try { hintsSeen = JSON.parse(store.get('cw-hints') || '{}') || {}; } catch (e) { hintsSeen = {}; }
+  const dailyKey = () => 'cw-daily-' + today().seed;
+  const dailyBest = () => parseInt(store.get(dailyKey()) || '0', 10) || 0;
+
+
+  // ---------- localization ----------
+  const I18N = {
+    en: {
+      floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off',
+      ctx: 'Context', ctxAria: 'Context window', gameAria: 'Game board', ready: 'ready',
+      inTurns: n => `in ${n} ${n === 1 ? 'turn' : 'turns'}`, eff: p => `· ${p}% compression`,
+      grepLeft: n => `Grep ${n} more`, allyLeft: n => `subagent ${n}`, frozen: '429: frozen',
+      lgSys: 'system prompt', lgItems: 'items', lgOut: 'tool output', lgNoise: 'damage noise',
+      hActions: 'Actions', hLog: 'Session log', hInv: 'In context', wait: 'Wait a turn', space: 'Space', padWait: 'wait',
+      waitAria: 'Wait', up: 'Up', left: 'Left', right: 'Right', down: 'Down',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> toggles sound.',
+      footer: 'Fan game. Not affiliated with or made by Anthropic.',
+      daily: d => `Daily ${d}`, invEmpty: 'Empty. Items are scattered across floors.', forget: 'Forget',
+      forgetTitle: n => `Remove ${n} from context`, summary: 'summary', notFound: n => `${n} not found yet`, perk: n => `Start with ${n}`,
+      d_read: s => `Dispels hallucinations within ${s ? 2 : 4} tiles`,
+      d_grep: s => `Reveals the whole floor for ${s ? 6 : 12} turns`,
+      d_bash: s => `${s ? 1 : 2} damage to every adjacent tile`,
+      d_claudemd: () => 'Compaction never summarizes your items',
+      d_thinking: s => s ? '+1 damage at 50% chance, each hit +1k' : '+1 damage, but each hit adds 1k output',
+      d_pcache: s => `Tools cost ${s ? 25 : 50}% less`,
+      d_subagent: () => 'A clone fights for 12 turns; its damage never enters your context',
+      d_clear: () => 'Wipes the context, items included',
+      d_cache: () => '−25k noise',
+      h_enemy: 'Enemy in sight. <b>Step into it</b> to attack. Arrows above enemies show their next move, <b>!</b> means a hit.',
+      h_item: 'Items take up context. <b>Step on one</b> to pick it up. Forget what you don\u2019t need in the side panel.',
+      h_ctx: 'Context is half full. <b>/compact (C)</b> squeezes noise and output, but each compaction is weaker than the last.',
+      h_stairs: 'The green arrow is <b>git push</b>, the way down. Every floor adds 6k of history.',
+      h_mimic: 'Hallucinations look like items and sometimes flicker. <b>Read (R)</b> dispels them in advance.',
+      h_boss: '<b>Legacy Monolith</b>. Refactor its modules one by one. When tiles turn red, back off 3 tiles.',
+      h_frozen: '<b>Rate Limiter</b> freezes you for 2 turns. Take it out first.',
+      h_ally: 'The <b>Subagent</b> hunts enemies on its own. Its fights never cost you context.',
+      l_start: 'Session started. Find git push, the stairs down.',
+      l_daily: d => `Daily run ${d}: everyone gets the same dungeons.`,
+      l_floor: n => `Floor ${n}. New repository, tougher enemies.`,
+      l_floorBoss: n => `Floor ${n}. Legacy Monolith lives here.`,
+      l_bossWake: 'Legacy Monolith woke up. 4 modules, each refactored separately.',
+      l_mimic: 'That was no item. It was a hallucination!',
+      l_flaky: 'Flaky Test dodged. Run it again.',
+      l_mergeHalf: 'Half a conflict. Finish the other half within 2 turns or it comes back.',
+      l_mergeDone: 'Merge Conflict resolved. +20',
+      l_killed: (n, ally, sc) => `${n} ${ally ? 'fixed by the subagent' : 'fixed'}. +${sc}`,
+      l_module: n => `Module refactored: ${n}/4`,
+      l_bossDead: 'Legacy Monolith refactored! +300. git push is open.',
+      l_hurt: (by, k) => `${by} → +${k}k noise`,
+      l_cache: k => `Cache Hit: noise −${k}k`,
+      l_already: n => `${n} is already in context`,
+      l_noFit: (n, sz) => `${n} doesn\u2019t fit (${sz}k). Compact or forget an item.`,
+      l_picked: (n, sz, d) => `Picked up ${n} (${sz}k): ${d}`,
+      l_push: n => `git push: floor ${n} cleared. +100`,
+      l_noTool: n => `${n} isn\u2019t in context. Find it on a floor.`,
+      l_noCtx: n => `Not enough context for ${n}. Wait for /compact.`,
+      l_read: n => `Read: dispelled ${n} ${n === 1 ? 'hallucination' : 'hallucinations'}`,
+      l_readNone: 'Read: no hallucinations nearby',
+      l_grep: n => `Grep: map and enemies visible for ${n} turns`,
+      l_denied: 'Bash: Permission denied. Turn lost.',
+      l_bash: (h, k) => `Bash: hit ${h}, fixed ${k}`,
+      l_noSub: 'No Subagent in context',
+      l_subNoSpace: 'No room to spawn a subagent: every adjacent tile is taken',
+      l_subStart: 'Subagent launched for 12 turns',
+      l_subDone: 'Subagent finished its task',
+      l_compact: (auto, eff, b, a, list) => `${auto ? 'Auto-compaction' : '/compact'} (${eff}%): ${b}k → ${a}k${list ? '. Summarized: ' + list : ''}`,
+      l_cdWait: n => `/compact is recharging, ${n} ${n === 1 ? 'turn' : 'turns'} left`,
+      l_noClear: 'No /clear in context',
+      l_clear: (b, a) => `/clear: ${b}k → ${a}k. All items forgotten.`,
+      l_forgot: (n, sz) => `${n} forgotten, −${sz}k`,
+      l_death: by => `Context overflow. The last noise came from ${by}.`,
+      l_loopMult: 'Infinite Loop multiplied',
+      l_mergeBack: 'Merge Conflict came back',
+      l_frozen: 'Rate Limiter: 429, you skip 2 turns',
+      l_slamMiss: 'The deploy missed. Monolith is exposed.',
+      l_slamWarn: 'Monolith is preparing a deploy: get off the red tiles!',
+      l_techDebt: 'Monolith released tech debt: Bug',
+      c_floor: n => `Floor ${n}`,
+      unknown: 'an unknown source', noiseSrc: 'noise',
+      introP: 'Clawd descends through repositories. No health bar, just a 200k-token context window. Damage, tools and items fill it up. Overflow while /compact is recharging and the session ends.',
+      rules: '<li><b>Move</b> with arrows, WASD or swipes; hold to run. Step into an enemy to attack.</li><li><b>R Read, G Grep, B Bash</b> are tools; every call adds output to your context.</li><li><b>C /compact</b> squeezes noise and output, but gets weaker each time and may turn items into summaries.</li><li>Every 5th floor holds the boss <b>Legacy Monolith</b>.</li>',
+      btnStart: 'Start session', btnNew: 'New session', btnDaily: d => `Daily · ${d}`,
+      commitsP: n => `Commits across all sessions: <b>${n}</b>. They unlock starting items (not used in the daily run):`,
+      hintsReset: 'Show hints again', hintsOn: 'Hints enabled', lang: 'Language',
+      deadP: by => `The context overflowed. The last noise came from ${by}.`,
+      st_mode: 'Mode', st_daily: d => `daily ${d}`, st_normal: 'normal', st_floor: 'Floor', st_turns: 'Turns',
+      st_kills: 'Enemies fixed', st_bosses: 'Bosses', st_comp: 'Compactions', st_noise: 'Noise taken',
+      st_tools: 'Tokens on tools', st_score: 'Score', st_best: 'Best', st_bestDay: 'Best today',
+      dailyNoCommits: 'The daily run doesn\u2019t add commits.',
+      earned: (e, t) => `+${e} commits. Total: <b>${t}</b>.`,
+      unlocked: l => `Unlocked: ${l}`,
+    },
+    ru: {
+      floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл',
+      ctx: 'Контекст', ctxAria: 'Контекстное окно', gameAria: 'Игровое поле', ready: 'готова',
+      inTurns: n => `через ${n} ${plural(n, 'ход', 'хода', 'ходов')}`, eff: p => `· сжатие ${p}%`,
+      grepLeft: n => `Grep ещё ${n}`, allyLeft: n => `сабагент ${n}`, frozen: '429: заморожен',
+      lgSys: 'системный промпт', lgItems: 'предметы', lgOut: 'вывод инструментов', lgNoise: 'шум от урона',
+      hActions: 'Действия', hLog: 'Лог сессии', hInv: 'В контексте', wait: 'Ждать ход', space: 'Пробел', padWait: 'ждать',
+      waitAria: 'Ждать', up: 'Вверх', left: 'Влево', right: 'Вправо', down: 'Вниз',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук.',
+      footer: 'Фанатская игра. Не связана с Anthropic и не является её продуктом.',
+      daily: d => `Ежедневный ${d}`, invEmpty: 'Пусто. Предметы лежат на этажах.', forget: 'Забыть',
+      forgetTitle: n => `Убрать ${n} из контекста`, summary: 'саммари', notFound: n => `${n} ещё не найден`, perk: n => `Старт с ${n}`,
+      d_read: s => `Рассеивает галлюцинации в радиусе ${s ? 2 : 4}`,
+      d_grep: s => `Показывает весь этаж на ${s ? 6 : 12} ходов`,
+      d_bash: s => `Урон ${s ? 1 : 2} по всем соседним клеткам`,
+      d_claudemd: () => 'Компакция не сжимает предметы',
+      d_thinking: s => s ? 'Удар +1 с шансом 50%, каждый удар +1k' : 'Удар +1, но каждый удар +1k к выводу',
+      d_pcache: s => `Инструменты дешевле на ${s ? 25 : 50}%`,
+      d_subagent: () => 'Клон воюет 12 ходов, его урон не идёт в твой контекст',
+      d_clear: () => 'Обнуляет контекст вместе с предметами',
+      d_cache: () => '−25k шума',
+      h_enemy: 'Враг в поле зрения. <b>Шаг в него</b> — атака. Стрелки над врагами показывают их следующий ход, <b>!</b> — удар.',
+      h_item: 'Предметы занимают место в контексте. <b>Наступи</b>, чтобы взять. Ненужное можно забыть в панели справа.',
+      h_ctx: 'Контекст заполнен наполовину. <b>/compact (C)</b> сжимает шум и вывод, но каждая следующая компакция слабее.',
+      h_stairs: 'Зелёная стрелка — <b>git push</b>, спуск на следующий этаж. Каждый этаж добавляет 6k истории.',
+      h_mimic: 'Галлюцинации выглядят как предметы и иногда мерцают. <b>Read (R)</b> рассеивает их заранее.',
+      h_boss: '<b>Legacy Monolith</b>. Рефактори модули по одному. Когда клетки краснеют, отойди на 3 клетки.',
+      h_frozen: '<b>Rate Limiter</b> замораживает на 2 хода. Добивай его первым.',
+      h_ally: '<b>Subagent</b> сам ищет врагов. Его драки не тратят твой контекст.',
+      l_start: 'Сессия началась. Найди git push — лестницу вниз.',
+      l_daily: d => `Ежедневный забег ${d}: у всех одинаковые подземелья.`,
+      l_floor: n => `Этаж ${n}. Новый репозиторий, враги сильнее.`,
+      l_floorBoss: n => `Этаж ${n}. Здесь живёт Legacy Monolith.`,
+      l_bossWake: 'Legacy Monolith проснулся. 4 модуля, каждый рефакторится отдельно.',
+      l_mimic: 'Это не предмет, а галлюцинация!',
+      l_flaky: 'Flaky Test увернулся. Прогони ещё раз.',
+      l_mergeHalf: 'Половина конфликта. Добей вторую за 2 хода, иначе вернётся.',
+      l_mergeDone: 'Merge Conflict разрешён. +20',
+      l_killed: (n, ally, sc) => `${n} устранён${ally ? ' сабагентом' : ''}. +${sc}`,
+      l_module: n => `Модуль отрефакторен: ${n}/4`,
+      l_bossDead: 'Legacy Monolith отрефакторен! +300. Открылся git push.',
+      l_hurt: (by, k) => `${by} → +${k}k шума`,
+      l_cache: k => `Cache Hit: шум −${k}k`,
+      l_already: n => `${n} уже в контексте`,
+      l_noFit: (n, sz) => `${n} не влезает (${sz}k). Сожми контекст или забудь предмет.`,
+      l_picked: (n, sz, d) => `Подобран ${n} (${sz}k): ${d}`,
+      l_push: n => `git push: этаж ${n} пройден. +100`,
+      l_noTool: n => `${n} нет в контексте. Найди его на этаже.`,
+      l_noCtx: n => `Не хватит контекста на ${n}. Дождись /compact.`,
+      l_read: n => `Read: рассеяно галлюцинаций — ${n}`,
+      l_readNone: 'Read: рядом галлюцинаций нет',
+      l_grep: n => `Grep: карта и враги видны ${n} ходов`,
+      l_denied: 'Bash: Permission denied. Ход потерян.',
+      l_bash: (h, k) => `Bash: задето ${h}, устранено ${k}`,
+      l_noSub: 'Subagent нет в контексте',
+      l_subNoSpace: 'Некуда заспавнить сабагента: все клетки рядом заняты',
+      l_subStart: 'Сабагент запущен на 12 ходов',
+      l_subDone: 'Сабагент завершил задачу',
+      l_compact: (auto, eff, b, a, list) => `${auto ? 'Авто-компакция' : '/compact'} (${eff}%): ${b}k → ${a}k${list ? '. В саммари: ' + list : ''}`,
+      l_cdWait: n => `/compact перезаряжается ещё ${n} ${plural(n, 'ход', 'хода', 'ходов')}`,
+      l_noClear: '/clear нет в контексте',
+      l_clear: (b, a) => `/clear: ${b}k → ${a}k. Все предметы забыты.`,
+      l_forgot: (n, sz) => `${n} забыт, −${sz}k`,
+      l_death: by => `Context overflow. Последним шум добавил ${by}.`,
+      l_loopMult: 'Infinite Loop размножился',
+      l_mergeBack: 'Merge Conflict вернулся',
+      l_frozen: 'Rate Limiter: 429, пропускаешь 2 хода',
+      l_slamMiss: 'Деплой мимо. Monolith уязвим.',
+      l_slamWarn: 'Monolith готовит деплой: уйди с красных клеток!',
+      l_techDebt: 'Monolith выпустил техдолг: Bug',
+      c_floor: n => `Этаж ${n}`,
+      unknown: 'неизвестный источник', noiseSrc: 'шум',
+      introP: 'Clawd спускается по репозиториям. Здоровья нет, есть контекстное окно на 200k токенов. Урон, инструменты и предметы заполняют его. Переполнился, пока /compact на перезарядке, — сессия окончена.',
+      rules: '<li><b>Ход</b> — стрелки, WASD или свайп, удержание — бег. Шаг во врага — атака.</li><li><b>R Read, G Grep, B Bash</b> — инструменты, каждый вызов добавляет вывод в контекст.</li><li><b>C /compact</b> сжимает шум и вывод, но каждый раз слабее и может превратить предметы в саммари.</li><li>Каждый 5-й этаж — босс <b>Legacy Monolith</b>.</li>',
+      btnStart: 'Начать сессию', btnNew: 'Новая сессия', btnDaily: d => `Ежедневный · ${d}`,
+      commitsP: n => `Коммиты за все сессии: <b>${n}</b>. Они открывают стартовые предметы (в ежедневном забеге не действуют):`,
+      hintsReset: 'Показать подсказки заново', hintsOn: 'Подсказки включены', lang: 'Язык',
+      deadP: by => `Контекст переполнился. Последним шум добавил ${by}.`,
+      st_mode: 'Режим', st_daily: d => `ежедневный ${d}`, st_normal: 'обычный', st_floor: 'Этаж', st_turns: 'Ходов',
+      st_kills: 'Врагов устранено', st_bosses: 'Боссов', st_comp: 'Компакций', st_noise: 'Шума получено',
+      st_tools: 'Токенов на инструменты', st_score: 'Счёт', st_best: 'Рекорд', st_bestDay: 'Рекорд дня',
+      dailyNoCommits: 'Ежедневный забег не пополняет коммиты.',
+      earned: (e, t) => `+${e} коммитов. Всего: <b>${t}</b>.`,
+      unlocked: l => `Открыто: ${l}`,
+    },
+  };
+  let LANG = store.get('cw-lang') === 'ru' ? 'ru' : 'en';
+  function tr(key, ...a) {
+    const v = (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.en[key];
+    return typeof v === 'function' ? v(...a) : v;
+  }
+  function applyStatic() {
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-i18n]').forEach(n => { n.textContent = tr(n.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-html]').forEach(n => { n.innerHTML = tr(n.dataset.i18nHtml); });
+    document.querySelectorAll('[data-i18n-aria]').forEach(n => { n.setAttribute('aria-label', tr(n.dataset.i18nAria)); });
+  }
+  function setLang(l) {
+    LANG = l === 'ru' ? 'ru' : 'en';
+    store.set('cw-lang', LANG);
+    applyStatic();
+    hud();
+  }
+
+  // ---------- sound ----------
+  let actx = null;
+  function audioOn() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  }
+  function tone(f0, f1, dur, type, vol, delay) {
+    if (muted || !actx) return;
+    const t = actx.currentTime + (delay || 0);
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol || 0.05, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function noise(dur, vol, delay, lp) {
+    if (muted || !actx) return;
+    const t = actx.currentTime + (delay || 0);
+    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; f.type = 'lowpass'; f.frequency.value = lp || 1500;
+    g.gain.setValueAtTime(vol || 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(actx.destination);
+    src.start(t);
+  }
+  const SFX = {
+    step: () => tone(150, 120, 0.03, 'square', 0.012),
+    hit: () => tone(320, 120, 0.08, 'square', 0.045),
+    kill: () => { noise(0.12, 0.05); tone(500, 1000, 0.08, 'square', 0.035, 0.02); },
+    hurt: () => tone(190, 60, 0.22, 'sawtooth', 0.06),
+    pickup: () => { tone(660, 660, 0.07, 'square', 0.035); tone(990, 990, 0.09, 'square', 0.035, 0.07); },
+    tool: () => { tone(520, 520, 0.05, 'triangle', 0.06); tone(780, 780, 0.07, 'triangle', 0.06, 0.05); },
+    compact: () => { tone(900, 200, 0.3, 'triangle', 0.07); tone(200, 600, 0.25, 'triangle', 0.05, 0.3); },
+    stairs: () => [330, 440, 660, 880].forEach((f, i) => tone(f, f, 0.09, 'square', 0.035, i * 0.08)),
+    death: () => { tone(400, 40, 0.9, 'sawtooth', 0.07); noise(0.5, 0.05, 0.1, 600); },
+    slam: () => { noise(0.45, 0.12, 0, 300); tone(90, 40, 0.4, 'sine', 0.14); },
+    warn: () => { tone(700, 700, 0.08, 'square', 0.04); tone(700, 700, 0.08, 'square', 0.04, 0.15); },
+    denied: () => { tone(200, 200, 0.08, 'square', 0.05); tone(150, 150, 0.12, 'square', 0.05, 0.1); },
+    dodge: () => tone(1200, 1700, 0.06, 'triangle', 0.04),
+    boss: () => [220, 330, 440, 660, 880].forEach((f, i) => tone(f, f * 1.01, 0.14, 'square', 0.045, i * 0.1)),
+    freeze: () => tone(1000, 300, 0.3, 'square', 0.035),
+    ally: () => tone(400, 900, 0.15, 'triangle', 0.05),
+  };
+  function sfx(n) { try { if (SFX[n]) SFX[n](); } catch (e) {} }
 
   // ---------- canvas ----------
-  const cv = $('#game');
+  const cv = el('game');
   cv.width = LW * S; cv.height = LH * S;
   const ctx = cv.getContext('2d');
   const spr = document.createElement('canvas');
@@ -273,25 +599,33 @@
   const LEGS = [4, 6, 11, 13], EYES = [5, 12];
 
   // ---------- world state ----------
-  let map, seen, vis, wallShow, dist, rooms, stairs, ents, floorItems;
+  let map, seen, vis, wallShow, dist, rooms, stairs, ents, floorItems, allies;
   let G = null, P = null, T = 0, nextId = 1;
   const parts = [], texts = [], rings = [];
-  let best = parseInt(store.get('cw-best') || '0', 10) || 0;
 
   const isFloor = (x, y) => inb(x, y) && map[idx(x, y)] === 0;
   const entAt = (x, y) => ents.find(e => e.x === x && e.y === y);
-  const occupied = (x, y) => (P.x === x && P.y === y) || !!entAt(x, y);
+  const allyAt = (x, y) => allies.find(a => a.x === x && a.y === y);
+  const occupied = (x, y) => (P.x === x && P.y === y) || !!entAt(x, y) || !!allyAt(x, y);
   const has = id => G.items.some(i => i.id === id);
   const getItem = id => G.items.find(i => i.id === id);
   const itemSize = it => it.sum ? Math.ceil(ITEMS[it.id].size / 2) : ITEMS[it.id].size;
   const itemsSize = () => G.items.reduce((s, it) => s + itemSize(it), 0);
   const total = () => SYS + itemsSize() + G.output + G.noise;
-  const scaled = dmg => Math.round(dmg * (1 + 0.12 * (G.floor - 1)));
+  const scaled = dmg => Math.round(dmg * (1 + 0.15 * (G.floor - 1)));
+  const compactEff = () => Math.max(0.4, 0.7 - 0.08 * G.stats.compactions);
+  function toolCost(id) {
+    const pc = getItem('pcache');
+    const mult = pc ? (pc.sum ? 0.75 : 0.5) : 1;
+    return Math.ceil(ITEMS[id].cost * mult);
+  }
+  const isFoe = e => e.type !== 'mimic';
 
   // ---------- map generation ----------
-  function carve(x, y) { if (inb(x, y) && x > 0 && y > 0 && x < MW - 1 && y < MH - 1) map[idx(x, y)] = 0; }
+  function carve(x, y) { if (x > 0 && y > 0 && x < MW - 1 && y < MH - 1) map[idx(x, y)] = 0; }
+  function carveRoom(r) { for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) carve(x, y); }
   function corridor(a, b) {
-    if (Math.random() < 0.5) {
+    if (chance(0.5)) {
       for (let x = Math.min(a.cx, b.cx); x <= Math.max(a.cx, b.cx); x++) carve(x, a.cy);
       for (let y = Math.min(a.cy, b.cy); y <= Math.max(a.cy, b.cy); y++) carve(b.cx, y);
     } else {
@@ -299,6 +633,7 @@
       for (let x = Math.min(a.cx, b.cx); x <= Math.max(a.cx, b.cx); x++) carve(x, b.cy);
     }
   }
+  function room(x, y, w, h) { return { x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) }; }
   function genMap() {
     for (let tries = 0; tries < 50; tries++) {
       map = new Uint8Array(MW * MH).fill(1);
@@ -306,15 +641,26 @@
       for (let a = 0; a < 400 && rooms.length < 10; a++) {
         const w = ri(4, 8), h = ri(4, 6), x = ri(1, MW - w - 2), y = ri(1, MH - h - 2);
         if (rooms.some(r => x < r.x + r.w + 1 && x + w + 1 > r.x && y < r.y + r.h + 1 && y + h + 1 > r.y)) continue;
-        rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
+        rooms.push(room(x, y, w, h));
       }
       if (rooms.length < 6) continue;
-      rooms.forEach(r => { for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) carve(x, y); });
+      rooms.forEach(carveRoom);
       rooms.sort((a, b) => a.cx - b.cx);
       for (let i = 1; i < rooms.length; i++) corridor(rooms[i - 1], rooms[i]);
       for (let i = 0; i < 2; i++) corridor(pick(rooms), pick(rooms));
       break;
     }
+    computeWallShow();
+  }
+  function genBossMap() {
+    map = new Uint8Array(MW * MH).fill(1);
+    const entry = room(3, 11, 6, 6), arena = room(13, 6, 20, 15);
+    rooms = [entry, arena];
+    carveRoom(entry); carveRoom(arena);
+    for (let x = entry.cx; x <= arena.x; x++) carve(x, entry.cy);
+    computeWallShow();
+  }
+  function computeWallShow() {
     wallShow = new Uint8Array(MW * MH);
     for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
       if (map[idx(x, y)] !== 1) continue;
@@ -333,9 +679,9 @@
     }
     return d;
   }
-  function freeTile(minDist, room) {
+  function freeTile(minDist, rm) {
     for (let a = 0; a < 300; a++) {
-      const r = room || rooms[ri(1, rooms.length - 1)];
+      const r = rm || rooms[ri(1, rooms.length - 1)];
       const x = ri(r.x, r.x + r.w - 1), y = ri(r.y, r.y + r.h - 1);
       if (!isFloor(x, y) || occupied(x, y)) continue;
       if (stairs && stairs.x === x && stairs.y === y) continue;
@@ -347,61 +693,82 @@
   }
   function makeEnt(type, x, y, extra) {
     const f = FOES[type];
-    return Object.assign({ id: nextId++, type, x, y, px: x, py: y, moveT: 1, hp: f.hp, maxHp: f.hp, awake: false, flash: 0, atkT: 1, adx: 0, ady: 0, face: 1 }, extra || {});
+    const hp = f.hp + (HP_STEP[type] ? Math.floor((G.floor - 1) / HP_STEP[type]) : 0);
+    return Object.assign({ id: nextId++, type, x, y, px: x, py: y, moveT: 1, hp, maxHp: hp, awake: false, flash: 0, atkT: 1, adx: 0, ady: 0, face: 1, intent: null }, extra || {});
+  }
+  function adjacentFree(x, y) {
+    const opts = DIRS.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => isFloor(a, b) && !occupied(a, b));
+    return opts.length ? pick(opts) : null;
   }
 
   function nextFloor() {
     G.floor++;
-    genMap();
-    ents = []; floorItems = []; stairs = null;
+    ents = []; floorItems = []; stairs = null; allies = []; G.boss = null;
+    const bossFloor = G.floor % 5 === 0;
+    if (bossFloor) genBossMap(); else genMap();
     const start = rooms[0];
     P.x = P.px = start.cx; P.y = P.py = start.cy; P.moveT = 1;
-    const d = bfsFrom(P.x, P.y);
-    let far = rooms[rooms.length - 1], fd = -1;
-    rooms.forEach(r => { const v = d[idx(r.cx, r.cy)]; if (v > fd) { fd = v; far = r; } });
-    stairs = { x: far.cx, y: far.cy };
 
-    // enemies
-    const n = Math.min(16, 3 + Math.floor(G.floor * 1.5));
-    const pool = ['bug', 'bug', 'bug', 'mimic'];
-    if (G.floor >= 2) pool.push('loop', 'bug');
-    if (G.floor >= 3) pool.push('merge');
-    let placed = 0, pairId = 1;
-    for (let a = 0; placed < n && a < 60; a++) {
-      const type = pick(pool);
-      const t = freeTile(6);
-      if (!t) continue;
-      if (type === 'merge') {
-        let t2 = null;
-        for (let b = 0; b < 30 && !t2; b++) {
-          const x = t.x + ri(-3, 3), y = t.y + ri(-3, 3);
-          if (isFloor(x, y) && !occupied(x, y) && !(x === t.x && y === t.y) && !(x === stairs.x && y === stairs.y)) t2 = { x, y };
+    if (bossFloor) {
+      const arena = rooms[1], bx = arena.x + 13, by = arena.cy - 1;
+      const hp = FOES.module.hp + Math.floor(G.floor / 5) - 1;
+      G.boss = { bx, by, awake: false, dead: false, timer: 0, slam: false, maxHp: hp * 4 };
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([dx, dy]) => ents.push(makeEnt('module', bx + dx, by + dy, { hp, maxHp: hp, qx: dx, qy: dy, awake: true })));
+      const t1 = freeTile(2, rooms[0]); if (t1) floorItems.push({ id: 'cache', x: t1.x, y: t1.y });
+      const t2 = freeTile(4, arena); if (t2) floorItems.push({ id: 'cache', x: t2.x, y: t2.y });
+      if (!has('subagent')) { const t3 = freeTile(2, rooms[0]); if (t3) floorItems.push({ id: 'subagent', x: t3.x, y: t3.y }); }
+    } else {
+      const d = bfsFrom(P.x, P.y);
+      let far = rooms[rooms.length - 1], fd = -1;
+      rooms.forEach(r => { const v = d[idx(r.cx, r.cy)]; if (v > fd) { fd = v; far = r; } });
+      stairs = { x: far.cx, y: far.cy };
+
+      const n = Math.min(20, 4 + Math.floor(G.floor * 1.6));
+      const pool = ['bug', 'bug', 'bug', 'mimic'];
+      if (G.floor >= 2) pool.push('loop', 'bug');
+      if (G.floor >= 3) pool.push('merge', 'flaky');
+      if (G.floor >= 4) pool.push('limiter');
+      let placed = 0, pairId = 1;
+      for (let a = 0; placed < n && a < 80; a++) {
+        const type = pick(pool);
+        const t = freeTile(6);
+        if (!t) continue;
+        if (type === 'merge') {
+          let t2 = null;
+          for (let b = 0; b < 30 && !t2; b++) {
+            const x = t.x + ri(-3, 3), y = t.y + ri(-3, 3);
+            if (isFloor(x, y) && !occupied(x, y) && !(x === t.x && y === t.y) && !(x === stairs.x && y === stairs.y)) t2 = { x, y };
+          }
+          if (!t2) continue;
+          ents.push(makeEnt('merge', t.x, t.y, { pair: pairId, sym: '<' }));
+          ents.push(makeEnt('merge', t2.x, t2.y, { pair: pairId, sym: '>' }));
+          pairId++; placed += 2;
+        } else if (type === 'mimic') {
+          ents.push(makeEnt('mimic', t.x, t.y, { disguise: pick(['cache', 'cache', 'claudemd', 'subagent']) }));
+          placed++;
+        } else {
+          ents.push(makeEnt(type, t.x, t.y)); placed++;
         }
-        if (!t2) continue;
-        ents.push(makeEnt('merge', t.x, t.y, { pair: pairId, sym: '<' }));
-        ents.push(makeEnt('merge', t2.x, t2.y, { pair: pairId, sym: '>' }));
-        pairId++; placed += 2;
-      } else if (type === 'mimic') {
-        ents.push(makeEnt('mimic', t.x, t.y, { disguise: Math.random() < 0.6 ? 'cache' : 'claudemd' }));
-        placed++;
-      } else {
-        ents.push(makeEnt(type, t.x, t.y)); placed++;
       }
+
+      const drop = id => { const t = freeTile(3); if (t) floorItems.push({ id, x: t.x, y: t.y }); };
+      drop('cache'); if (chance(0.5)) drop('cache');
+      if (!has('read')) drop('read');
+      if (!has('grep')) drop('grep');
+      if (!has('bash') && G.floor >= 2) drop('bash');
+      if (!has('claudemd') && G.floor >= 2 && chance(0.35)) drop('claudemd');
+      if (!has('pcache') && G.floor >= 2 && chance(0.3)) drop('pcache');
+      if (!has('thinking') && G.floor >= 3 && chance(0.3)) drop('thinking');
+      if (!has('subagent') && G.floor >= 2 && chance(0.35)) drop('subagent');
+      if (!has('clear') && chance(0.25)) drop('clear');
     }
 
-    // items
-    const drop = id => { const t = freeTile(3); if (t) floorItems.push({ id, x: t.x, y: t.y }); };
-    drop('cache'); if (Math.random() < 0.5) drop('cache');
-    if (!has('read')) drop('read');
-    if (!has('grep')) drop('grep');
-    if (!has('bash') && G.floor >= 2) drop('bash');
-    if (!has('claudemd') && G.floor >= 2 && Math.random() < 0.35) drop('claudemd');
-    if (!has('clear') && Math.random() < 0.25) drop('clear');
-
     seen = new Uint8Array(MW * MH);
-    G.grep = 0;
+    G.grep = 0; G.knownVisible = new Set();
     computeFOV();
-    if (G.floor > 1) log(`Этаж ${G.floor}. Новый репозиторий, враги сильнее.`, 'sys');
+    computeIntents();
+    if (G.floor > 1) log(bossFloor ? tr('l_floorBoss', G.floor) : tr('l_floor', G.floor), 'sys');
+    if (bossFloor) hint('boss');
   }
 
   // ---------- FOV ----------
@@ -428,41 +795,97 @@
     }
   }
 
+  // ---------- intents & run interruption ----------
+  function computeIntents() {
+    const d = bfsFrom(P.x, P.y);
+    const nowVisible = new Set();
+    for (const e of ents) {
+      e.intent = null;
+      if (e.type === 'mimic' || e.type === 'module') continue;
+      const dd = d[idx(e.x, e.y)];
+      if (!e.awake && vis[idx(e.x, e.y)] && dd >= 0 && dd <= 8) e.awake = true;
+      if (vis[idx(e.x, e.y)]) nowVisible.add(e.id);
+      if (!e.awake || dd < 0) continue;
+      if (manh(e, P) === 1) { e.intent = { t: 'atk' }; continue; }
+      if (e.type === 'loop' && (G.turn + 1) % 2) { e.intent = { t: 'wait' }; continue; }
+      let bd = dd, best = null;
+      for (const [dx, dy] of DIRS) {
+        const nx = e.x + dx, ny = e.y + dy;
+        if (!isFloor(nx, ny) || occupied(nx, ny)) continue;
+        const nd = d[idx(nx, ny)];
+        if (nd >= 0 && nd < bd) { bd = nd; best = [dx, dy]; }
+      }
+      if (best) e.intent = { t: 'move', dx: best[0], dy: best[1] };
+    }
+    if (G.boss && G.boss.awake === false && ents.some(m => m.type === 'module' && vis[idx(m.x, m.y)])) {
+      G.boss.awake = true; G.interrupt = true;
+      log(tr('l_bossWake'), 'hit');
+      sfx('warn');
+    }
+    for (const id of nowVisible) if (!G.knownVisible.has(id)) { G.interrupt = true; hint('enemy'); break; }
+    G.knownVisible = nowVisible;
+    if (floorItems.some(i => vis[idx(i.x, i.y)])) hint('item');
+    if (stairs && vis[idx(stairs.x, stairs.y)]) hint('stairs');
+  }
+
+  // ---------- hints ----------
+  let hintTimer = null;
+  function hint(key) {
+    if (hintsSeen[key] || I18N.en['h_' + key] === undefined) return;
+    hintsSeen[key] = 1;
+    store.set('cw-hints', JSON.stringify(hintsSeen));
+    const h = el('hint');
+    h.innerHTML = tr('h_' + key);
+    h.hidden = false;
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { h.hidden = true; }, 6500);
+  }
+
   // ---------- log & fx ----------
   function log(s, cls) {
     G.log.push({ s, cls: cls || '' });
     if (G.log.length > 7) G.log.shift();
     renderLog();
   }
-  function wx(x) { return x * TS + 12; }
-  function wy(y) { return y * TS + 20; }
+  const wx = x => x * TS + 12;
+  const wy = y => y * TS + 20;
   function text(s, c, x, y) { texts.push({ s, c, x, y, life: 1.3, max: 1.3 }); }
   function part(o) { parts.push(Object.assign({ vx: 0, vy: 0, g: 0, life: 0.5, size: 1, fy: null }, o, { max: o.life || 0.5 })); }
   function burst(x, y, n, c, spd, fy) {
-    for (let i = 0; i < n; i++) part({ x: x + rand(-4, 4), y: y - rand(2, 9), vx: rand(-spd, spd), vy: rand(-spd * 1.3, -spd * 0.2), g: 90, fy, life: rand(0.4, 0.8), c: typeof c === 'function' ? c() : c });
+    for (let i = 0; i < n; i++) part({ x: x + vr(-4, 4), y: y - vr(2, 9), vx: vr(-spd, spd), vy: vr(-spd * 1.3, -spd * 0.2), g: 90, fy, life: vr(0.4, 0.8), c: typeof c === 'function' ? c() : c });
   }
   function setAnim(type, extra) { P.anim = Object.assign({ type, t: 0 }, extra || {}); }
+  function shake(s) { G.shake = Math.max(G.shake, s); }
 
   // ---------- game flow ----------
-  function newGame() {
+  function unlockedPerks() { return PERKS.filter(p => commits >= p.at); }
+
+  function newGame(mode) {
+    const daily = mode === 'daily';
+    const td = today();
+    seedRng(daily ? td.seed : (Math.random() * 2 ** 32) >>> 0);
     G = {
+      mode: daily ? 'daily' : 'normal', dailyLabel: td.label,
       floor: 0, score: 0, turn: 0, items: [{ id: 'read', sum: false }], noise: 0, output: 0, cd: 0, grep: 0,
       over: false, deathShown: false, started: false, trans: null, queue: null, log: [], killedBy: '',
-      stats: { kills: 0, compactions: 0, noise: 0, tools: 0 }
+      frozen: 0, frozenT: 0, shake: 0, hitstop: 0, interrupt: false, knownVisible: new Set(), boss: null,
+      stats: { kills: 0, compactions: 0, noise: 0, tools: 0, bosses: 0 }
     };
+    if (!daily) unlockedPerks().forEach(p => { if (!has(p.item)) G.items.push({ id: p.item, sum: false }); });
     P = { x: 0, y: 0, px: 0, py: 0, moveT: 1, face: 1, anim: null };
     parts.length = 0; texts.length = 0; rings.length = 0;
     nextFloor();
-    log('Сессия началась. Найди git push — лестницу вниз.', 'sys');
+    log(daily ? tr('l_daily', td.label) : tr('l_start'), 'sys');
     hud();
   }
 
   function busy() {
-    return !!G.trans || P.moveT < 1 || (P.anim && P.anim.lock && P.anim.t < P.anim.lock);
+    return !!G.trans || P.moveT < 1 || G.frozen > 0 || (P.anim && P.anim.lock && P.anim.t < P.anim.lock);
   }
 
   function act(k, a) {
     if (!G.started || G.over) return;
+    if (G.frozen > 0) return;
     if (busy()) { G.queue = { k, a }; return; }
     let r = false;
     if (k === 'move') r = tryMove(a[0], a[1]);
@@ -470,6 +893,7 @@
     else if (k === 'tool') r = useTool(a);
     else if (k === 'compact') r = manualCompact();
     else if (k === 'clear') r = useClear();
+    else if (k === 'sub') r = useSubagent();
     if (r === true) endTurn();
     hud();
   }
@@ -479,56 +903,102 @@
     if (dx) P.face = dx;
     if (!isFloor(nx, ny)) return false;
     const e = entAt(nx, ny);
-    if (e) { attack(e, dx, dy); return true; }
+    if (e) { playerAttack(e, dx, dy); return true; }
+    const al = allyAt(nx, ny);
+    if (al) { al.px = al.x; al.py = al.y; al.x = P.x; al.y = P.y; al.moveT = 0; }
     P.px = P.x; P.py = P.y; P.x = nx; P.y = ny; P.moveT = 0;
+    sfx('step');
     pickup();
     if (stairs && P.x === stairs.x && P.y === stairs.y) { descend(); return 'descend'; }
     return true;
   }
 
-  function attack(e, dx, dy) {
+  function playerDamage() {
+    const th = getItem('thinking');
+    if (!th) return 1;
+    G.output += 1;
+    return 1 + (th.sum ? (chance(0.5) ? 1 : 0) : 1);
+  }
+
+  function playerAttack(e, dx, dy) {
     setAnim('attack', { dx, dy, lock: 0.14 });
+    if (e.type === 'mimic') {
+      e.flash = 0.18;
+      e.type = 'ghost'; e.awake = true;
+      log(tr('l_mimic'), 'ghost');
+      text('?!', COL.ghost, wx(e.x), wy(e.y) - 22);
+      hint('mimic');
+      hurt(scaled(FOES.ghost.dmg), 'Hallucination');
+      return;
+    }
+    damage(e, playerDamage(), 'player');
+  }
+
+  function damage(e, dmg, by) {
+    if (e.type === 'mimic') { e.type = 'ghost'; e.awake = true; }
     e.flash = 0.18;
-    if (e.type === 'mimic') { reveal(e); return; }
-    e.hp -= 1;
+    if (e.type === 'flaky' && chance(0.5)) {
+      text('flaky!', COL.flakyOk, wx(e.x), wy(e.y) - 22);
+      sfx('dodge');
+      if (by === 'player') log(tr('l_flaky'), 'tool');
+      return;
+    }
+    e.hp -= dmg;
+    sfx('hit');
     burst(wx(e.x), wy(e.y), 6, COL.white, 30, wy(e.y));
-    if (e.hp <= 0) kill(e);
+    if (e.hp <= 0) kill(e, by);
   }
 
-  function reveal(e) {
-    e.type = 'ghost'; e.awake = true;
-    log('Это не предмет, а галлюцинация!', 'ghost');
-    text('?!', COL.ghost, wx(e.x), wy(e.y) - 22);
-    hurt(scaled(FOES.ghost.dmg), 'Hallucination', e);
-  }
-
-  function kill(e, quiet) {
+  function kill(e, by) {
     ents = ents.filter(o => o !== e);
     const f = FOES[e.type];
     G.score += f.score; G.stats.kills++;
-    const c = { bug: COL.bug, ghost: COL.ghost, mimic: COL.ghost, loop: COL.loop, merge: COL.merge }[e.type];
-    burst(wx(e.x), wy(e.y), 14, c, 35, wy(e.y));
+    G.hitstop = 0.05;
+    sfx('kill');
+    const c = { bug: COL.bug, ghost: COL.ghost, mimic: COL.ghost, loop: COL.loop, merge: COL.merge, flaky: COL.flakyOk, limiter: COL.limiter, module: COL.stoneHi }[e.type];
+    burst(wx(e.x), wy(e.y), e.type === 'module' ? 30 : 14, c, 35, wy(e.y));
+    const loud = by === 'player' || by === 'ally';
+    if (e.type === 'module') { moduleDown(e); return; }
     if (e.type === 'merge') {
       const partner = ents.find(o => o.type === 'merge' && o.pair === e.pair);
       if (partner) {
         partner.revive = { x: e.x, y: e.y, sym: e.sym }; partner.reviveT = 3;
-        if (!quiet) log('Половина конфликта. Добей вторую за 2 хода, иначе вернётся.', 'sys');
+        log(tr('l_mergeHalf'), 'sys');
       } else {
         G.score += 20;
-        if (!quiet) log('Merge Conflict разрешён. +20', 'ok');
+        log(tr('l_mergeDone'), 'ok');
         text('resolved', COL.ok, wx(e.x), wy(e.y) - 20);
       }
-    } else if (!quiet) {
-      log(`${f.name} устранён. +${f.score}`, 'ok');
+    } else if (loud) {
+      log(tr('l_killed', f.name, by === 'ally', f.score), by === 'ally' ? 'ally' : 'ok');
     }
   }
 
-  function hurt(k, by, e) {
+  function moduleDown(e) {
+    const B = G.boss;
+    const left = ents.filter(o => o.type === 'module').length;
+    shake(0.25);
+    log(tr('l_module', 4 - left), 'ok');
+    if (left === 0) {
+      B.dead = true; B.slam = false;
+      stairs = { x: B.bx, y: B.by };
+      G.score += 300; G.stats.bosses++;
+      shake(0.5); sfx('boss');
+      for (let i = 0; i < 4; i++) burst(wx(B.bx + (i % 2)), wy(B.by + (i >> 1)), 20, () => pick([COL.stoneHi, COL.clawd, COL.tool]), 50, wy(B.by + (i >> 1)));
+      text('REFACTORED', COL.ok, wx(B.bx) + 12, wy(B.by) - 30);
+      log(tr('l_bossDead'), 'ok');
+    }
+  }
+
+  function hurt(k, by) {
     G.noise += k; G.stats.noise += k; G.killedBy = by;
+    G.interrupt = true;
     setAnim('hurt');
+    shake(0.18);
+    sfx('hurt');
     text(`+${k}k`, COL.noise, wx(P.x), wy(P.y) - 22);
     burst(wx(P.x), wy(P.y), 8, COL.noise, 25, wy(P.y));
-    log(`${by} → +${k}k шума`, 'hit');
+    log(tr('l_hurt', by, k), 'hit');
   }
 
   function pickup() {
@@ -539,50 +1009,56 @@
       const healed = Math.min(25, G.noise);
       G.noise -= healed;
       floorItems.splice(i, 1);
+      sfx('pickup');
       text(`−${healed}k`, COL.ok, wx(P.x), wy(P.y) - 22);
-      log(`Cache Hit: шум −${healed}k`, 'ok');
+      log(tr('l_cache', healed), 'ok');
       return;
     }
-    if (has(it.id)) { log(`${def.name} уже в контексте`); return; }
-    if (total() + def.size > MAX) { log(`${def.name} не влезает (${def.size}k). Сожми контекст или забудь предмет.`, 'hit'); return; }
+    if (has(it.id)) { log(tr('l_already', def.name)); return; }
+    if (total() + def.size > MAX) { log(tr('l_noFit', def.name, def.size), 'hit'); return; }
     G.items.push({ id: it.id, sum: false });
     floorItems.splice(i, 1);
     setAnim('happy');
+    sfx('pickup');
     text(`+ ${def.name}`, COL.clawd, wx(P.x), wy(P.y) - 22);
-    log(`Подобран ${def.name} (${def.size}k): ${def.desc(false)}`, 'sys');
+    log(tr('l_picked', def.name, def.size, def.desc(false)), 'sys');
   }
 
   function descend() {
     G.score += 100;
     setAnim('push', { lock: 1.2 });
+    sfx('stairs');
     text('git push ✓', COL.ok, wx(P.x), wy(P.y) - 30);
-    log(`git push: этаж ${G.floor} пройден. +100`, 'ok');
+    log(tr('l_push', G.floor), 'ok');
     G.trans = { t: 0, swapped: false };
   }
 
   function useTool(id) {
     const def = ITEMS[id];
-    if (!has(id)) { log(`${def.name} нет в контексте. Найди его на этаже.`); return false; }
-    if (total() + def.cost > MAX && G.cd > 0) { log(`Не хватит контекста на ${def.name}. Дождись /compact.`, 'hit'); return false; }
+    if (!has(id)) { log(tr('l_noTool', def.name)); return false; }
+    const cost = toolCost(id);
+    if (total() + cost > MAX && G.cd > 0) { log(tr('l_noCtx', def.name), 'hit'); return false; }
     const it = getItem(id);
-    G.output += def.cost; G.stats.tools += def.cost;
+    G.output += cost; G.stats.tools += cost;
     setAnim('tool', { lock: 0.2 });
-    text(`${def.name}() +${def.cost}k`, COL.tool, wx(P.x), wy(P.y) - 24);
+    sfx('tool');
+    text(`${def.name}() +${cost}k`, COL.tool, wx(P.x), wy(P.y) - 24);
 
     if (id === 'read') {
       const R = it.sum ? 2 : 4;
       const hit = ents.filter(e => (e.type === 'mimic' || e.type === 'ghost') && Math.hypot(e.x - P.x, e.y - P.y) <= R + 0.01);
-      hit.forEach(e => { burst(wx(e.x), wy(e.y), 12, COL.ghost, 30, wy(e.y)); kill(e, true); });
+      hit.forEach(e => { burst(wx(e.x), wy(e.y), 12, COL.ghost, 30, wy(e.y)); kill(e, 'read'); });
       rings.push({ x: wx(P.x), y: wy(P.y) - 6, r: 4, max: R * TS, life: 1, c: COL.ghost });
-      log(hit.length ? `Read: рассеяно галлюцинаций — ${hit.length}` : 'Read: рядом галлюцинаций нет', 'tool');
+      log(hit.length ? tr('l_read', hit.length) : tr('l_readNone'), 'tool');
     } else if (id === 'grep') {
       G.grep = it.sum ? 6 : 12;
       for (let i = 0; i < seen.length; i++) if (map[i] === 0 || wallShow[i]) seen[i] = 1;
       rings.push({ x: wx(P.x), y: wy(P.y) - 6, r: 4, max: 140, life: 1, c: COL.tool });
-      log(`Grep: карта и враги видны ${G.grep} ходов`, 'tool');
+      log(tr('l_grep', G.grep), 'tool');
     } else if (id === 'bash') {
-      if (Math.random() < 0.1) {
-        log('Bash: Permission denied. Ход потерян.', 'hit');
+      if (chance(0.1)) {
+        sfx('denied');
+        log(tr('l_denied'), 'hit');
         text('Permission denied', COL.noise, wx(P.x), wy(P.y) - 32);
       } else {
         const dmg = it.sum ? 1 : 2;
@@ -590,55 +1066,67 @@
           if (!dx && !dy) continue;
           part({ x: wx(P.x + dx), y: wy(P.y + dy) - 6, vx: dx * 20, vy: dy * 20 - 10, life: 0.35, c: COL.tool, size: 2 });
         }
+        shake(0.1);
         const hit = ents.filter(e => Math.abs(e.x - P.x) <= 1 && Math.abs(e.y - P.y) <= 1);
-        let kills = 0;
-        hit.forEach(e => {
-          e.flash = 0.2;
-          if (e.type === 'mimic') { e.type = 'ghost'; e.awake = true; }
-          e.hp -= dmg;
-          if (e.hp <= 0) { kill(e, true); kills++; }
-        });
-        log(`Bash: задето ${hit.length}, устранено ${kills}`, 'tool');
+        const before = G.stats.kills;
+        hit.forEach(e => damage(e, dmg, 'bash'));
+        log(tr('l_bash', hit.length, G.stats.kills - before), 'tool');
       }
     }
     return true;
   }
 
+  function useSubagent() {
+    if (!has('subagent')) { log(tr('l_noSub')); return false; }
+    const spot = adjacentFree(P.x, P.y);
+    if (!spot) { log(tr('l_subNoSpace')); return false; }
+    G.items = G.items.filter(i => i.id !== 'subagent');
+    allies.push({ x: spot[0], y: spot[1], px: P.x, py: P.y, moveT: 0, life: 12, atkT: 1, adx: 0, ady: 0, face: P.face });
+    sfx('ally');
+    burst(wx(spot[0]), wy(spot[1]), 12, COL.ally, 30, wy(spot[1]));
+    text('Task(subagent)', COL.ally, wx(P.x), wy(P.y) - 26);
+    log(tr('l_subStart'), 'ally');
+    hint('ally');
+    return true;
+  }
+
   function doCompact(auto) {
     const before = total();
-    G.noise = Math.floor(G.noise * 0.3);
-    G.output = Math.floor(G.output * 0.3);
+    const eff = compactEff();
+    G.noise = Math.floor(G.noise * (1 - eff));
+    G.output = Math.floor(G.output * (1 - eff));
     const pinned = has('claudemd');
     const hit = [];
-    G.items.forEach(it => {
-      if (it.sum || it.id === 'claudemd' || it.id === 'clear') return;
-      if (pinned && ITEMS[it.id].kind === 'tool') return;
-      if (Math.random() < 0.4) { it.sum = true; hit.push(ITEMS[it.id].name); }
+    if (!pinned) G.items.forEach(it => {
+      if (it.sum || it.id === 'clear' || it.id === 'subagent') return;
+      if (chance(0.4)) { it.sum = true; hit.push(ITEMS[it.id].name); }
     });
     G.cd = COMPACT_CD; G.stats.compactions++;
     setAnim('compact', { lock: 0.5 });
+    sfx('compact');
     text('● Compacting…', COL.clawd, wx(P.x), wy(P.y) - 26);
     for (let i = 0; i < 24; i++) {
-      const a = rand(0, Math.PI * 2), r = rand(18, 34);
-      part({ x: wx(P.x) + Math.cos(a) * r, y: wy(P.y) - 6 + Math.sin(a) * r * 0.7, tx: wx(P.x), ty: wy(P.y) - 6, life: rand(0.35, 0.55), c: i % 2 ? COL.noise : COL.tool });
+      const a = vr(0, Math.PI * 2), r = vr(18, 34);
+      part({ x: wx(P.x) + Math.cos(a) * r, y: wy(P.y) - 6 + Math.sin(a) * r * 0.7, tx: wx(P.x), ty: wy(P.y) - 6, life: vr(0.35, 0.55), c: i % 2 ? COL.noise : COL.tool });
     }
-    log(`${auto ? 'Авто-компакция' : '/compact'}: ${before}k → ${total()}k${hit.length ? '. В саммари: ' + hit.join(', ') : ''}`, 'sys');
+    log(tr('l_compact', auto, Math.round(eff * 100), before, total(), hit.join(', ')), 'sys');
   }
 
   function manualCompact() {
-    if (G.cd > 0) { log(`/compact перезаряжается ещё ${G.cd} ходов`); return false; }
+    if (G.cd > 0) { log(tr('l_cdWait', G.cd)); return false; }
     doCompact(false);
     return true;
   }
 
   function useClear() {
-    if (!has('clear')) { log('/clear нет в контексте'); return false; }
+    if (!has('clear')) { log(tr('l_noClear')); return false; }
     const before = total();
     G.items = []; G.noise = 0; G.output = 0;
     setAnim('compact', { lock: 0.5 });
+    sfx('compact');
     text('/clear', COL.clear, wx(P.x), wy(P.y) - 26);
     burst(wx(P.x), wy(P.y), 20, COL.clear, 40, wy(P.y));
-    log(`/clear: ${before}k → ${total()}k. Все предметы забыты.`, 'sys');
+    log(tr('l_clear', before, total()), 'sys');
     return true;
   }
 
@@ -647,7 +1135,7 @@
     const it = getItem(id); if (!it) return;
     const sz = itemSize(it);
     G.items = G.items.filter(i => i !== it);
-    log(`${ITEMS[id].name} забыт, −${sz}k`);
+    log(tr('l_forgot', ITEMS[id].name, sz));
     hud();
   }
 
@@ -658,9 +1146,22 @@
 
   function die() {
     G.over = true;
+    held.length = 0;
     setAnim('death');
-    if (G.score > best) { best = G.score; store.set('cw-best', String(best)); }
-    log(`Context overflow. Сессию завершил ${G.killedBy || 'шум'}.`, 'hit');
+    sfx('death');
+    shake(0.4);
+    G.earned = G.score;
+    G.newPerks = [];
+    if (G.mode === 'daily') {
+      if (G.score > dailyBest()) store.set(dailyKey(), String(G.score));
+    } else {
+      if (G.score > best) { best = G.score; store.set('cw-best', String(best)); }
+      const was = commits;
+      commits += G.score;
+      store.set('cw-meta', String(commits));
+      G.newPerks = PERKS.filter(p => was < p.at && commits >= p.at);
+    }
+    log(tr('l_death', G.killedBy || tr('noiseSrc')), 'hit');
   }
 
   function endTurn() {
@@ -669,23 +1170,22 @@
     if (G.cd > 0) G.cd--;
     if (G.grep > 0) G.grep--;
     dist = bfsFrom(P.x, P.y);
+    allyTurn();
     for (const e of ents.slice()) {
       if (!ents.includes(e) || G.over) continue;
       enemyAct(e);
     }
-    // loops multiply
+    bossTurn();
     if (G.turn % 6 === 0) {
-      const loops = ents.filter(e => e.type === 'loop');
-      for (const e of loops.filter(l => l.awake)) {
+      const loops = ents.filter(e => e.type === 'loop' && e.awake);
+      for (const e of loops) {
         if (ents.filter(o => o.type === 'loop').length >= 10) break;
-        const opts = DIRS.map(([dx, dy]) => [e.x + dx, e.y + dy]).filter(([x, y]) => isFloor(x, y) && !occupied(x, y));
-        if (!opts.length) continue;
-        const [x, y] = pick(opts);
-        ents.push(makeEnt('loop', x, y, { awake: true, px: e.x, py: e.y, moveT: 0 }));
-        if (vis[idx(x, y)]) { log('Infinite Loop размножился', 'hit'); text('+1', COL.loop, wx(x), wy(y) - 18); }
+        const spot = adjacentFree(e.x, e.y);
+        if (!spot) continue;
+        ents.push(makeEnt('loop', spot[0], spot[1], { awake: true, px: e.x, py: e.y, moveT: 0 }));
+        if (vis[idx(spot[0], spot[1])]) { log(tr('l_loopMult'), 'hit'); text('+1', COL.loop, wx(spot[0]), wy(spot[1]) - 18); }
       }
     }
-    // merge conflicts come back
     for (const e of ents.slice()) {
       if (e.reviveT > 0) {
         e.reviveT--;
@@ -695,7 +1195,7 @@
           for (const [x, y] of cands) if (isFloor(x, y) && !occupied(x, y)) { spot = [x, y]; break; }
           if (spot) {
             ents.push(makeEnt('merge', spot[0], spot[1], { pair: e.pair, sym: e.revive.sym, awake: true }));
-            log('Merge Conflict вернулся', 'hit');
+            log(tr('l_mergeBack'), 'hit');
             text('<<<>>>', COL.merge, wx(spot[0]), wy(spot[1]) - 18);
           }
           e.revive = null;
@@ -703,11 +1203,53 @@
       }
     }
     computeFOV();
+    computeIntents();
     if (!G.over) checkOverflow();
+    if (!G.over && total() >= MAX / 2) hint('ctx');
+  }
+
+  function stepToward(o, d) {
+    let bd = d[idx(o.x, o.y)], best = null;
+    if (bd < 0) return null;
+    for (const [dx, dy] of DIRS) {
+      const nx = o.x + dx, ny = o.y + dy;
+      if (!isFloor(nx, ny) || occupied(nx, ny)) continue;
+      const nd = d[idx(nx, ny)];
+      if (nd >= 0 && nd < bd) { bd = nd; best = [nx, ny, dx]; }
+    }
+    return best;
+  }
+
+  function allyTurn() {
+    for (const a of allies.slice()) {
+      a.life--;
+      if (a.life <= 0) {
+        allies = allies.filter(o => o !== a);
+        burst(wx(a.x), wy(a.y), 12, COL.ally, 25, wy(a.y));
+        log(tr('l_subDone'), 'ally');
+        continue;
+      }
+      let target = null, td = 1e9;
+      for (const e of ents) {
+        if (!isFoe(e) || !(vis[idx(e.x, e.y)] || G.grep > 0)) continue;
+        const m = manh(a, e);
+        if (m < td && m <= 10) { td = m; target = e; }
+      }
+      if (target && td === 1) {
+        a.atkT = 0; a.adx = target.x - a.x; a.ady = target.y - a.y;
+        if (a.adx) a.face = a.adx;
+        damage(target, 1, 'ally');
+        continue;
+      }
+      let step = null;
+      if (target) step = stepToward(a, bfsFrom(target.x, target.y));
+      else if (manh(a, P) > 2) step = stepToward(a, dist);
+      if (step) { a.px = a.x; a.py = a.y; a.x = step[0]; a.y = step[1]; a.moveT = 0; if (step[2]) a.face = step[2]; }
+    }
   }
 
   function enemyAct(e) {
-    if (e.type === 'mimic') return;
+    if (e.type === 'mimic' || e.type === 'module') return;
     const d = dist[idx(e.x, e.y)];
     if (!e.awake) {
       if (d >= 0 && ((vis[idx(e.x, e.y)] && d <= 8) || (G.grep > 0 && d <= 10))) e.awake = true;
@@ -715,22 +1257,61 @@
     }
     if (d < 0) return;
     if (e.type === 'loop' && G.turn % 2) return;
-    if (Math.abs(e.x - P.x) + Math.abs(e.y - P.y) === 1) {
+    if (manh(e, P) === 1) {
       e.atkT = 0; e.adx = P.x - e.x; e.ady = P.y - e.y;
       if (e.adx) e.face = e.adx;
-      hurt(scaled(FOES[e.type].dmg), FOES[e.type].name, e);
+      hurt(scaled(FOES[e.type].dmg), FOES[e.type].name);
+      if (e.type === 'limiter' && !G.frozen) {
+        G.frozen = 2; G.frozenT = 0;
+        sfx('freeze');
+        text('429 Too Many Requests', COL.limiter, wx(P.x), wy(P.y) - 32);
+        log(tr('l_frozen'), 'hit');
+        hint('frozen');
+      }
       return;
     }
-    let best = null, bd = d;
-    for (const [dx, dy] of DIRS) {
-      const nx = e.x + dx, ny = e.y + dy;
-      if (!isFloor(nx, ny) || occupied(nx, ny)) continue;
-      const nd = dist[idx(nx, ny)];
-      if (nd >= 0 && nd < bd) { bd = nd; best = [nx, ny, dx]; }
+    const step = stepToward(e, dist);
+    if (step) { e.px = e.x; e.py = e.y; e.x = step[0]; e.y = step[1]; e.moveT = 0; if (step[2]) e.face = step[2]; }
+  }
+
+  function inSlam(x, y) {
+    return ents.some(m => m.type === 'module' && Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= 2);
+  }
+
+  function bossTurn() {
+    const B = G.boss;
+    if (!B || B.dead || !B.awake) return;
+    const mods = ents.filter(e => e.type === 'module');
+    if (!mods.length) return;
+    B.timer++;
+    if (B.slam) {
+      B.slam = false;
+      shake(0.4); sfx('slam');
+      mods.forEach(m => rings.push({ x: wx(m.x), y: wy(m.y) - 8, r: 4, max: 60, life: 1, c: COL.noise }));
+      if (inSlam(P.x, P.y)) hurt(scaled(22), 'Legacy Monolith');
+      else log(tr('l_slamMiss'), 'ok');
+      allies.forEach(a => { if (inSlam(a.x, a.y)) a.life = Math.min(a.life, 1); });
+      return;
     }
-    if (best) {
-      e.px = e.x; e.py = e.y; e.x = best[0]; e.y = best[1]; e.moveT = 0;
-      if (best[2]) e.face = best[2];
+    if (B.timer % 4 === 0) {
+      B.slam = true;
+      G.interrupt = true;
+      sfx('warn');
+      log(tr('l_slamWarn'), 'hit');
+      return;
+    }
+    const adj = mods.find(m => manh(m, P) === 1);
+    if (adj) {
+      adj.atkT = 0; adj.adx = P.x - adj.x; adj.ady = P.y - adj.y;
+      hurt(scaled(FOES.module.dmg), 'Legacy Monolith');
+      return;
+    }
+    if (B.timer % 5 === 0 && ents.filter(e => e.type === 'bug').length < 6) {
+      const m = pick(mods), spot = adjacentFree(m.x, m.y);
+      if (spot) {
+        ents.push(makeEnt('bug', spot[0], spot[1], { awake: true, px: m.x, py: m.y, moveT: 0 }));
+        log(tr('l_techDebt'), 'hit');
+      }
     }
   }
 
@@ -738,9 +1319,9 @@
   function basePose() {
     return { bodyDy: 0, eye: 2, look: 0, armL: [0, 0], armR: [0, 0], legs: [0, 0, 0, 0], ox: 0, oy: 0, sx: 1, sy: 1, tint: null, alpha: 1 };
   }
-  function paintSprite(p) {
+  function paintSprite(p, color) {
     sc.clearRect(0, 0, spr.width, spr.height);
-    sc.fillStyle = p.tint || COL.clawd;
+    sc.fillStyle = p.tint || color || COL.clawd;
     const px = (c, r, w, h) => sc.fillRect(OX + c, OY + r, w, h);
     const bd = p.bodyDy | 0;
     LEGS.forEach((c, i) => { const top = 8 + bd, bottom = 10 - (p.legs[i] || 0); if (bottom > top) px(c, top, 1, bottom - top); });
@@ -749,11 +1330,12 @@
     px(15 + p.armR[0], 4 + bd + p.armR[1], 2, 2);
     if (p.eye > 0) EYES.forEach(c => sc.clearRect(OX + c + p.look, OY + 2 + bd + (2 - p.eye), 1, p.eye));
   }
-  function idleBits() {
+  function idleBits(off) {
+    const t = T + (off || 0);
     let eye = 2;
-    const bt = T % 3.4;
+    const bt = t % 3.4;
     if (bt < 0.07) eye = 1; else if (bt < 0.15) eye = 0; else if (bt < 0.22) eye = 1;
-    const gt = T % 6;
+    const gt = t % 6;
     return { eye, look: gt > 3 && gt < 3.9 ? 1 : (gt > 4.2 && gt < 5.1 ? -1 : 0) };
   }
   function playerPose() {
@@ -766,6 +1348,7 @@
       p.legs = ph ? [0, 1, 0, 1] : [1, 0, 1, 0];
       p.bodyDy = 0;
     }
+    if (G.frozen > 0) { p.tint = Math.floor(T / 0.15) % 2 ? '#a8c8d8' : COL.clawd; p.eye = 1; p.bodyDy = 0; }
     const a = P.anim;
     if (!a) return p;
     const t = a.t;
@@ -823,21 +1406,22 @@
     for (let y = 0; y < spr.height; y++) for (let x = 0; x < spr.width; x++) {
       if (img[(y * spr.width + x) * 4 + 3] > 0) {
         const dx = (x - 12) * P.face;
-        part({ x: cx + dx, y: fy + (y - 16), vx: dx * rand(1, 4) + rand(-8, 8), vy: rand(-50, -15), g: 120, fy: fy, life: rand(1.2, 1.6), c: Math.random() < 0.12 ? COL.noise : COL.clawd });
+        part({ x: cx + dx, y: fy + (y - 16), vx: dx * vr(1, 4) + vr(-8, 8), vy: vr(-50, -15), g: 120, fy: fy, life: vr(1.2, 1.6), c: Math.random() < 0.12 ? COL.noise : COL.clawd });
       }
     }
     text('Context overflow', COL.noise, cx, fy - 26);
   }
 
-  // render positions (world px, feet)
   const lerp = (a, b, k) => a + (b - a) * k;
-  function rx(o) { return wx(lerp(o.px, o.x, ease(o.moveT))); }
-  function ry(o) { return wy(lerp(o.py, o.y, ease(o.moveT))); }
+  const rx = o => wx(lerp(o.px, o.x, ease(o.moveT)));
+  const ry = o => wy(lerp(o.py, o.y, ease(o.moveT)));
 
   // ---------- update ----------
   function update(dt) {
     T += dt;
     if (!G) return;
+    G.shake = Math.max(0, G.shake - dt);
+    if (G.hitstop > 0) { G.hitstop -= dt; return; }
     P.moveT = Math.min(1, P.moveT + dt / 0.11);
     if (P.anim) {
       P.anim.t += dt;
@@ -851,14 +1435,24 @@
       e.atkT = Math.min(1, e.atkT + dt / 0.22);
       e.flash = Math.max(0, e.flash - dt);
     }
+    for (const a of allies) { a.moveT = Math.min(1, a.moveT + dt / 0.11); a.atkT = Math.min(1, a.atkT + dt / 0.22); }
     if (G.trans) {
       G.trans.t += dt;
       if (G.trans.t >= 0.8 && !G.trans.swapped) {
         G.trans.swapped = true;
+        G.output += 6;
         nextFloor(); P.anim = null; hud();
         parts.length = 0; texts.length = 0; rings.length = 0;
       }
       if (G.trans.t >= 1.1) G.trans = null;
+    }
+    if (G.frozen > 0 && !G.over && !G.trans && P.moveT >= 1) {
+      G.frozenT += dt;
+      if (G.frozenT > 0.4) {
+        G.frozenT = 0; G.frozen--;
+        text('⏳', COL.limiter, wx(P.x), wy(P.y) - 24);
+        endTurn(); hud();
+      }
     }
     for (let i = parts.length - 1; i >= 0; i--) {
       const q = parts[i];
@@ -939,6 +1533,22 @@
         ctx.fillStyle = '#efe6dc'; ctx.fillRect(cx - 4, cy - 2, 4, 5); ctx.fillRect(cx + 1, cy - 2, 4, 5);
         ctx.fillStyle = '#8f4a33'; ctx.fillRect(cx, cy - 3, 1, 8);
         break;
+      case 'thinking':
+        ctx.fillStyle = '#c9a0dc'; ctx.fillRect(cx - 4, cy - 4, 9, 7); ctx.fillRect(cx - 3, cy - 5, 7, 1);
+        ctx.fillRect(cx - 3, cy + 4, 2, 2); ctx.fillRect(cx - 5, cy + 6, 1, 1);
+        ctx.fillStyle = '#2a2030'; ctx.fillRect(cx - 2, cy - 1, 1, 1); ctx.fillRect(cx, cy - 1, 1, 1); ctx.fillRect(cx + 2, cy - 1, 1, 1);
+        break;
+      case 'pcache':
+        ctx.fillStyle = COL.tool; ctx.fillRect(cx - 4, cy - 5, 9, 2); ctx.fillRect(cx - 4, cy - 1, 9, 2); ctx.fillRect(cx - 4, cy + 3, 9, 2);
+        ctx.fillStyle = '#8a6d33'; ctx.fillRect(cx - 4, cy - 3, 9, 2); ctx.fillRect(cx - 4, cy + 1, 9, 2);
+        ctx.fillStyle = '#2b2320'; ctx.fillRect(cx + 2, cy - 5, 1, 1); ctx.fillRect(cx + 2, cy - 1, 1, 1); ctx.fillRect(cx + 2, cy + 3, 1, 1);
+        break;
+      case 'subagent':
+        ctx.fillStyle = COL.ally;
+        ctx.fillRect(cx - 4, cy - 3, 9, 6); ctx.fillRect(cx - 5, cy - 1, 1, 2); ctx.fillRect(cx + 5, cy - 1, 1, 2);
+        ctx.fillRect(cx - 3, cy + 3, 1, 2); ctx.fillRect(cx - 1, cy + 3, 1, 2); ctx.fillRect(cx + 1, cy + 3, 1, 2); ctx.fillRect(cx + 3, cy + 3, 1, 2);
+        ctx.fillStyle = COL.void; ctx.fillRect(cx - 2, cy - 2, 1, 2); ctx.fillRect(cx + 2, cy - 2, 1, 2);
+        break;
     }
   }
 
@@ -986,23 +1596,115 @@
     };
     chev(x0 + 2, y0 + 3); chev(x0 + 6, y0 + 3);
   }
+  function drawFlaky(cx, cy, e) {
+    const good = Math.floor(T / 0.35 + e.id) % 2 === 0;
+    const x0 = cx - 5, y0 = cy - 14;
+    ctx.fillStyle = e.flash > 0 ? COL.white : '#d8d0c6';
+    ctx.fillRect(x0 + 3, y0, 5, 2); ctx.fillRect(x0 + 4, y0 + 2, 3, 3); ctx.fillRect(x0 + 1, y0 + 5, 9, 8); ctx.fillRect(x0 + 2, y0 + 13, 7, 1);
+    ctx.fillStyle = good ? COL.flakyOk : COL.flakyBad;
+    ctx.fillRect(x0 + 2, y0 + 8, 7, 5);
+    ctx.fillStyle = '#f7f1ea';
+    if (good) { ctx.fillRect(x0 + 3, y0 + 10, 1, 1); ctx.fillRect(x0 + 4, y0 + 11, 1, 1); ctx.fillRect(x0 + 5, y0 + 10, 1, 1); ctx.fillRect(x0 + 6, y0 + 9, 1, 1); }
+    else { ctx.fillRect(x0 + 3, y0 + 9, 1, 1); ctx.fillRect(x0 + 5, y0 + 11, 1, 1); ctx.fillRect(x0 + 4, y0 + 10, 1, 1); ctx.fillRect(x0 + 5, y0 + 9, 1, 1); ctx.fillRect(x0 + 3, y0 + 11, 1, 1); }
+  }
+  function drawLimiter(cx, cy, e) {
+    const x0 = cx - 5, y0 = cy - 15;
+    const c = e.flash > 0 ? COL.white : COL.limiter;
+    ctx.fillStyle = c; ctx.fillRect(x0, y0, 11, 2); ctx.fillRect(x0, y0 + 13, 11, 2);
+    ctx.fillStyle = '#8a6a2a';
+    ctx.fillRect(x0 + 1, y0 + 2, 9, 1); ctx.fillRect(x0 + 2, y0 + 3, 7, 2); ctx.fillRect(x0 + 3, y0 + 5, 5, 2); ctx.fillRect(x0 + 4, y0 + 7, 3, 1);
+    ctx.fillRect(x0 + 3, y0 + 8, 5, 2); ctx.fillRect(x0 + 2, y0 + 10, 7, 2); ctx.fillRect(x0 + 1, y0 + 12, 9, 1);
+    const k = (T * 0.5 + e.id * 0.3) % 1;
+    ctx.fillStyle = '#f0d9a0';
+    const top = Math.round(3 * (1 - k)), bot = Math.round(3 * k);
+    if (top > 0) ctx.fillRect(x0 + 4, y0 + 6 - top, 3, top);
+    if (bot > 0) ctx.fillRect(x0 + 4, y0 + 13 - bot, 3, bot);
+    if (Math.floor(T * 6) % 2) ctx.fillRect(x0 + 5, y0 + 8, 1, 2);
+  }
+  function drawModule(cx, cy, e) {
+    const X = cx - 12, Y = cy - 20;
+    const hurtK = 1 - e.hp / e.maxHp;
+    ctx.fillStyle = e.flash > 0 ? COL.white : COL.stone;
+    ctx.fillRect(X, Y, TS, TS);
+    ctx.fillStyle = COL.stoneHi; if (e.qy === 0) ctx.fillRect(X, Y, TS, 2);
+    ctx.fillStyle = COL.stoneLo;
+    if (e.qx === 0) ctx.fillRect(X, Y, 2, TS); else ctx.fillRect(X + TS - 2, Y, 2, TS);
+    if (e.qy === 1) ctx.fillRect(X, Y + TS - 2, TS, 2);
+    ctx.fillStyle = '#1c1916';
+    if (e.qx === 0) ctx.fillRect(X + TS - 1, Y, 1, TS); else ctx.fillRect(X, Y, 1, TS);
+    if (e.qy === 0) ctx.fillRect(X, Y + TS - 1, TS, 1); else ctx.fillRect(X, Y, TS, 1);
+    const h = hash(e.qx + 7, e.qy + 3);
+    ctx.fillStyle = '#6a4a38'; ctx.fillRect(X + 4, Y + (e.qy ? 5 : 14), 6 + h % 8, 1);
+    ctx.fillStyle = '#5c5634'; ctx.fillRect(X + 4, Y + (e.qy ? 9 : 18), 4 + (h >>> 4) % 10, 1);
+    if (e.qy === 0) {
+      const glow = 0.6 + 0.4 * Math.sin(T * 3);
+      ctx.globalAlpha = glow;
+      ctx.fillStyle = COL.noise;
+      const ex = e.qx === 0 ? X + 14 : X + 6;
+      ctx.fillRect(ex, Y + 7, 4, 3);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = '#15120f';
+    const cracks = Math.round(hurtK * 5);
+    for (let i = 0; i < cracks; i++) {
+      const hx = hash(e.id, i);
+      const sx = X + 3 + hx % 17, sy = Y + 3 + (hx >>> 5) % 17;
+      for (let j = 0; j < 4; j++) ctx.fillRect(sx + j * ((hx >>> 9) % 2 ? 1 : -1), sy + j, 1, 1);
+    }
+  }
+  function drawAlly(a) {
+    const p = basePose();
+    const ib = idleBits(1.3);
+    p.eye = ib.eye;
+    p.bodyDy = Math.floor((T + 0.35) / 0.7) % 2;
+    if (a.moveT < 1) { p.legs = Math.floor(a.moveT * 4) % 2 ? [0, 1, 0, 1] : [1, 0, 1, 0]; p.bodyDy = 0; }
+    paintSprite(p, COL.ally);
+    let cx = rx(a), cy = ry(a);
+    if (a.atkT < 1) { const k = Math.sin(a.atkT * Math.PI) * 4; cx += a.adx * k; cy += a.ady * k; }
+    ctx.save(); ctx.translate(Math.round(cx), Math.round(cy)); ctx.scale(a.face * 0.8, 0.8);
+    ctx.drawImage(spr, -12, -16);
+    ctx.restore();
+    ctx.fillStyle = COL.ally;
+    for (let i = 0; i < Math.min(a.life, 12); i++) ctx.fillRect(Math.round(rx(a)) - 6 + i, Math.round(ry(a)) - 15, 1, 1);
+  }
+  function drawIntent(e, cx, cy) {
+    if (!e.intent || !vis[idx(e.x, e.y)]) return;
+    const pulse = Math.floor(T * 4) % 2;
+    if (e.intent.t === 'atk') {
+      ctx.fillStyle = COL.noise;
+      ctx.fillRect(cx, cy - 27 - pulse, 1, 3); ctx.fillRect(cx, cy - 23 - pulse, 1, 1);
+    } else if (e.intent.t === 'move') {
+      const { dx, dy } = e.intent;
+      ctx.fillStyle = 'rgba(224,96,90,0.55)';
+      const ax = cx + dx * 11, ay = cy - 8 + dy * 11;
+      if (dx) for (let i = 0; i < 3; i++) { ctx.fillRect(ax - dx * i, ay - i, 1, 1); ctx.fillRect(ax - dx * i, ay + i, 1, 1); }
+      else for (let i = 0; i < 3; i++) { ctx.fillRect(ax - i, ay - dy * i, 1, 1); ctx.fillRect(ax + i, ay - dy * i, 1, 1); }
+    }
+  }
   function drawEnt(e) {
     let cx = rx(e), cy = ry(e);
     if (e.atkT < 1) { const k = Math.sin(e.atkT * Math.PI) * 4; cx += e.adx * k; cy += e.ady * k; }
     cx = Math.round(cx); cy = Math.round(cy);
-    if (e.type !== 'mimic') { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(cx - 5, cy, 11, 1); }
-    if (e.type === 'bug') drawBug(cx, cy, e);
-    else if (e.type === 'ghost') drawGhost(cx, cy, e);
-    else if (e.type === 'loop') drawLoop(cx, cy, e);
-    else if (e.type === 'merge') drawMerge(cx, cy, e);
-    else if (e.type === 'mimic') {
-      const bob = Math.floor(T * 2 + e.x) % 2;
-      drawItemIcon(e.disguise, cx, cy - 8 + bob);
-      if ((T + e.id * 0.7) % 2.6 < 0.09) { ctx.fillStyle = COL.ghost; ctx.fillRect(cx + 4, cy - 14 + bob, 1, 1); ctx.fillRect(cx - 5, cy - 3 + bob, 1, 1); }
+    if (e.type !== 'mimic' && e.type !== 'module') { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(cx - 5, cy, 11, 1); }
+    switch (e.type) {
+      case 'bug': drawBug(cx, cy, e); break;
+      case 'ghost': drawGhost(cx, cy, e); break;
+      case 'loop': drawLoop(cx, cy, e); break;
+      case 'merge': drawMerge(cx, cy, e); break;
+      case 'flaky': drawFlaky(cx, cy, e); break;
+      case 'limiter': drawLimiter(cx, cy, e); break;
+      case 'module': drawModule(cx, cy, e); break;
+      case 'mimic': {
+        const bob = Math.floor(T * 2 + e.x) % 2;
+        drawItemIcon(e.disguise, cx, cy - 8 + bob);
+        if ((T + e.id * 0.7) % 2.6 < 0.09) { ctx.fillStyle = COL.ghost; ctx.fillRect(cx + 4, cy - 14 + bob, 1, 1); ctx.fillRect(cx - 5, cy - 3 + bob, 1, 1); }
+        break;
+      }
     }
-    if (e.type !== 'mimic' && e.hp < e.maxHp) {
+    if (e.type !== 'mimic' && e.type !== 'module' && e.hp < e.maxHp) {
       for (let i = 0; i < e.maxHp; i++) { ctx.fillStyle = i < e.hp ? COL.noise : '#3a2f28'; ctx.fillRect(cx - e.maxHp * 2 + i * 4 + 1, cy - 21, 3, 1); }
     }
+    drawIntent(e, cx, cy);
   }
   function drawPlayer() {
     const p = playerPose();
@@ -1017,6 +1719,15 @@
       ctx.drawImage(spr, -12, -16);
       ctx.restore();
       ctx.globalAlpha = 1;
+    }
+  }
+  function drawSlamZone() {
+    const B = G.boss;
+    if (!B || !B.slam || B.dead) return;
+    const a = 0.25 + 0.2 * Math.sin(T * 12);
+    ctx.fillStyle = `rgba(224,96,90,${a})`;
+    for (let y = B.by - 3; y <= B.by + 4; y++) for (let x = B.bx - 3; x <= B.bx + 4; x++) {
+      if (isFloor(x, y) && inSlam(x, y) && !entAt(x, y)) ctx.fillRect(x * TS + 1, y * TS + 1, TS - 2, TS - 2);
     }
   }
   function drawRings() {
@@ -1050,68 +1761,106 @@
     }
     ctx.globalAlpha = 1;
   }
+  function drawMinimap() {
+    const x0 = LW - MW - 4, y0 = 4;
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = 'rgba(13,11,10,0.75)'; ctx.fillRect(x0 - 2, y0 - 2, MW + 4, MH + 4);
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+      const i = idx(x, y);
+      if (!seen[i] || map[i] !== 0) continue;
+      ctx.fillStyle = vis[i] ? '#6b5a4c' : '#3a3029';
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
+    if (stairs && seen[idx(stairs.x, stairs.y)]) { ctx.fillStyle = COL.ok; ctx.fillRect(x0 + stairs.x - 1, y0 + stairs.y - 1, 3, 3); }
+    for (const it of floorItems) if (seen[idx(it.x, it.y)]) { ctx.fillStyle = COL.tool; ctx.fillRect(x0 + it.x, y0 + it.y, 1, 1); }
+    for (const e of ents) {
+      if (e.type === 'module') { if (seen[idx(e.x, e.y)]) { ctx.fillStyle = COL.stoneHi; ctx.fillRect(x0 + e.x, y0 + e.y, 1, 1); } continue; }
+      if (e.type === 'mimic') { if (seen[idx(e.x, e.y)]) { ctx.fillStyle = COL.tool; ctx.fillRect(x0 + e.x, y0 + e.y, 1, 1); } continue; }
+      if (vis[idx(e.x, e.y)] || G.grep > 0) { ctx.fillStyle = COL.noise; ctx.fillRect(x0 + e.x, y0 + e.y, 1, 1); }
+    }
+    for (const a of allies) { ctx.fillStyle = COL.ally; ctx.fillRect(x0 + a.x, y0 + a.y, 1, 1); }
+    ctx.fillStyle = Math.floor(T * 3) % 2 ? COL.white : COL.clawd;
+    ctx.fillRect(x0 + P.x - 1, y0 + P.y - 1, 3, 3);
+    ctx.globalAlpha = 1;
+  }
+  function drawBossBar() {
+    const B = G.boss;
+    if (!B || !B.awake || B.dead) return;
+    const hp = ents.filter(e => e.type === 'module').reduce((s, e) => s + e.hp, 0);
+    const w = 110, x0 = 6, y0 = 6;
+    ctx.fillStyle = 'rgba(13,11,10,0.8)'; ctx.fillRect(x0 - 2, y0 - 2, w + 4, 15);
+    ctx.font = '5px Silkscreen, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = COL.noise; ctx.fillText('LEGACY MONOLITH', x0, y0 + 5);
+    ctx.fillStyle = '#3a2f28'; ctx.fillRect(x0, y0 + 8, w, 3);
+    ctx.fillStyle = COL.noise; ctx.fillRect(x0, y0 + 8, Math.round(w * hp / B.maxHp), 3);
+  }
 
   function render() {
     ctx.setTransform(S, 0, 0, S, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = COL.void; ctx.fillRect(0, 0, LW, LH);
     if (!G) return;
-    const camX = Math.round(clamp(rx(P) - LW / 2, 0, MW * TS - LW));
-    const camY = Math.round(clamp(ry(P) - 8 - LH / 2, 0, MH * TS - LH));
-    ctx.save(); ctx.translate(-camX, -camY);
-    const x0 = Math.floor(camX / TS), y0 = Math.floor(camY / TS);
-    for (let y = y0; y <= y0 + VH + 1 && y < MH; y++) for (let x = x0; x <= x0 + VW + 1 && x < MW; x++) {
+    let camX = Math.round(clamp(rx(P) - LW / 2, 0, MW * TS - LW));
+    let camY = Math.round(clamp(ry(P) - 8 - LH / 2, 0, MH * TS - LH));
+    let sx = 0, sy = 0;
+    if (G.shake > 0) { const m = Math.min(1, G.shake / 0.2) * 2; sx = Math.round(vr(-m, m)); sy = Math.round(vr(-m, m)); }
+    ctx.save(); ctx.translate(-camX + sx, -camY + sy);
+    const x0 = Math.floor(camX / TS) - 1, y0 = Math.floor(camY / TS) - 1;
+    const x1 = x0 + VW + 3, y1 = y0 + VH + 3;
+    for (let y = Math.max(0, y0); y <= y1 && y < MH; y++) for (let x = Math.max(0, x0); x <= x1 && x < MW; x++) {
       const i = idx(x, y);
       if (!seen[i]) continue;
       if (map[i] === 0) drawFloorTile(x, y); else if (wallShow[i]) drawWallTile(x, y);
     }
-    if (seen[idx(stairs.x, stairs.y)]) drawStairs();
+    if (stairs && seen[idx(stairs.x, stairs.y)]) drawStairs();
     for (const it of floorItems) {
       if (!seen[idx(it.x, it.y)]) continue;
       drawItemIcon(it.id, wx(it.x), wy(it.y) - 8 + (Math.floor(T * 2 + it.x) % 2));
     }
-    // mimics are remembered like items
-    for (const e of ents) if (e.type === 'mimic' && seen[idx(e.x, e.y)]) drawEnt(e);
-    // fog on remembered tiles
+    for (const e of ents) if ((e.type === 'mimic' || e.type === 'module') && seen[idx(e.x, e.y)]) drawEnt(e);
     ctx.fillStyle = 'rgba(13,11,10,0.55)';
-    for (let y = y0; y <= y0 + VH + 1 && y < MH; y++) for (let x = x0; x <= x0 + VW + 1 && x < MW; x++) {
+    for (let y = Math.max(0, y0); y <= y1 && y < MH; y++) for (let x = Math.max(0, x0); x <= x1 && x < MW; x++) {
       const i = idx(x, y);
       if (seen[i] && !vis[i]) ctx.fillRect(x * TS, y * TS, TS, TS);
     }
+    drawSlamZone();
     for (const e of ents) {
-      if (e.type === 'mimic') continue;
+      if (e.type === 'mimic' || e.type === 'module') continue;
       if (vis[idx(e.x, e.y)] || G.grep > 0) {
         if (!vis[idx(e.x, e.y)]) ctx.globalAlpha = 0.6;
         drawEnt(e);
         ctx.globalAlpha = 1;
       }
     }
+    for (const a of allies) drawAlly(a);
     drawPlayer();
     drawRings();
     drawParts();
-    drawTexts(camX);
+    drawTexts(camX - sx);
     ctx.restore();
+    drawMinimap();
+    drawBossBar();
     if (G.trans) {
       const t = G.trans.t;
       const a = t < 0.55 ? 0 : t < 0.8 ? (t - 0.55) / 0.25 : 1 - (t - 0.8) / 0.3;
       if (a > 0) { ctx.fillStyle = `rgba(13,11,10,${clamp(a, 0, 1)})`; ctx.fillRect(0, 0, LW, LH); }
       if (t > 0.6 && t < 1.05) {
+        const f = G.trans.swapped ? G.floor : G.floor + 1;
         ctx.globalAlpha = clamp(a, 0, 1);
         ctx.font = '8px Silkscreen, monospace'; ctx.textAlign = 'center';
-        ctx.fillStyle = COL.clawd; ctx.fillText(`Этаж ${G.trans.swapped ? G.floor : G.floor + 1}`, LW / 2, LH / 2);
+        ctx.fillStyle = f % 5 === 0 ? COL.noise : COL.clawd;
+        ctx.fillText(f % 5 === 0 ? tr('c_floor', f) + ' · Monolith' : tr('c_floor', f), LW / 2, LH / 2);
         ctx.globalAlpha = 1;
       }
     }
   }
 
   // ---------- HUD ----------
-  const el = id => document.getElementById(id);
   function hud() {
     if (!G) return;
     const it = itemsSize(), tt = total();
-    const pct = v => (v / MAX * 100);
     let rest = 100;
-    const seg = (id, v) => { const w = Math.min(rest, pct(v)); rest -= w; el(id).style.width = w + '%'; };
+    const seg = (id, v) => { const w = Math.min(rest, v / MAX * 100); rest -= w; el(id).style.width = w + '%'; };
     seg('seg-sys', SYS); seg('seg-items', it); seg('seg-out', G.output); seg('seg-noise', G.noise);
     const val = el('ctx-val');
     val.textContent = `${Math.min(tt, MAX)}k / ${MAX}k`;
@@ -1119,31 +1868,39 @@
     el('lg-sys').textContent = SYS + 'k'; el('lg-items').textContent = it + 'k';
     el('lg-out').textContent = G.output + 'k'; el('lg-noise').textContent = G.noise + 'k';
     const cd = el('cd');
-    cd.textContent = G.cd ? `через ${G.cd} ${plural(G.cd, 'ход', 'хода', 'ходов')}` : 'готова';
+    cd.textContent = G.cd ? tr('inTurns', G.cd) : tr('ready');
     cd.className = G.cd ? 'cd-wait' : 'cd-ready';
-    el('grep-st').textContent = G.grep ? ` · Grep ещё ${G.grep}` : '';
-    el('floor').textContent = G.floor; el('score').textContent = G.score; el('best').textContent = Math.max(best, G.score);
+    el('eff').textContent = tr('eff', Math.round(compactEff() * 100));
+    const extra = [];
+    if (G.grep) extra.push(tr('grepLeft', G.grep));
+    if (allies.length) extra.push(tr('allyLeft', allies[0].life));
+    if (G.frozen) extra.push(tr('frozen'));
+    el('extra').textContent = extra.length ? ' · ' + extra.join(' · ') : '';
+    el('mode').textContent = G.mode === 'daily' ? tr('daily', G.dailyLabel) : '';
+    el('floor').textContent = G.floor; el('score').textContent = G.score;
+    el('best').textContent = G.mode === 'daily' ? Math.max(dailyBest(), G.score) : Math.max(best, G.score);
     ['read', 'grep', 'bash'].forEach(id => {
       const b = el('b-' + id), i = getItem(id);
       b.disabled = !i;
-      b.querySelector('small').textContent = `${id[0].toUpperCase()} · +${ITEMS[id].cost}k${i && i.sum ? ' · саммари' : ''}`;
-      b.title = i ? ITEMS[id].desc(i.sum) : `${ITEMS[id].name} ещё не найден`;
+      b.querySelector('small').textContent = `${ITEMS[id].key} · +${toolCost(id)}k${i && i.sum ? ' · ' + tr('summary') : ''}`;
+      b.title = i ? ITEMS[id].desc(i.sum) : tr('notFound', ITEMS[id].name);
     });
     el('b-compact').disabled = G.cd > 0;
-    el('b-compact').querySelector('small').textContent = G.cd ? `C · ${G.cd}` : 'C · готова';
+    el('b-compact').querySelector('small').textContent = G.cd ? `C · ${G.cd}` : `C · ${Math.round(compactEff() * 100)}%`;
     el('b-clear').disabled = !has('clear');
+    el('b-sub').disabled = !has('subagent');
+    el('mute').textContent = muted ? tr('soundOff') : tr('soundOn');
     renderInv();
   }
-  function plural(n, a, b, c) { const m = n % 10, h = n % 100; if (m === 1 && h !== 11) return a; if (m >= 2 && m <= 4 && (h < 10 || h >= 20)) return b; return c; }
   function renderInv() {
     const ul = el('inv'); ul.innerHTML = '';
-    if (!G.items.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Пусто. Предметы лежат на этажах.'; ul.appendChild(li); return; }
+    if (!G.items.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = tr('invEmpty'); ul.appendChild(li); return; }
     for (const it of G.items) {
       const d = ITEMS[it.id];
       const li = document.createElement('li');
-      li.innerHTML = `<span class="nm">${d.name}${it.sum ? '<em>саммари</em>' : ''} <span class="sz">${itemSize(it)}k</span></span><span class="ds">${d.desc(it.sum)}</span>`;
+      li.innerHTML = `<span class="nm">${d.name}${it.sum ? '<em>' + tr('summary') + '</em>' : ''} <span class="sz">${itemSize(it)}k</span></span><span class="ds">${d.desc(it.sum)}</span>`;
       const b = document.createElement('button');
-      b.type = 'button'; b.textContent = 'Забыть'; b.title = `Убрать ${d.name} из контекста`;
+      b.type = 'button'; b.textContent = tr('forget'); b.title = tr('forgetTitle', d.name);
       b.addEventListener('click', () => dropItem(it.id));
       li.appendChild(b);
       ul.appendChild(li);
@@ -1156,52 +1913,87 @@
 
   // ---------- overlays ----------
   const overlay = el('overlay'), card = el('card');
-  function showStart() {
-    card.innerHTML = `
-      <h2>Context Window</h2>
-      <p>Clawd спускается по репозиториям. Здоровья нет, есть контекстное окно на 200k токенов. Урон, инструменты и предметы заполняют его. Переполнился, пока /compact на перезарядке, — сессия окончена.</p>
-      <ul>
-        <li><b>Ход</b> — стрелки, WASD или свайп. Шаг во врага — атака.</li>
-        <li><b>R Read, G Grep, B Bash</b> — инструменты. Каждый вызов добавляет вывод в контекст.</li>
-        <li><b>C /compact</b> сжимает шум и вывод на 70%, но может превратить предметы в саммари. Перезарядка 15 ходов.</li>
-        <li>Предметы иногда оказываются <b>галлюцинациями</b>. Read их рассеивает.</li>
-        <li>Зелёная стрелка — <b>git push</b>, спуск на следующий этаж.</li>
-      </ul>
-      <button class="primary" id="start" type="button">Начать сессию</button>`;
-    overlay.hidden = false;
-    el('start').addEventListener('click', start);
-    el('start').focus({ preventScroll: true });
+  function perksHtml() {
+    return `<ul class="perks">${PERKS.map(p => `<li class="${commits >= p.at ? 'on' : ''}"><span>${perkLabel(p)}</span><span>${Math.min(commits, p.at)} / ${p.at}</span></li>`).join('')}</ul>`;
   }
-  function start() {
-    if (G.over) newGame();
+  function wireButtons() {
+    const s = el('btn-start'), d = el('btn-daily'), r = el('btn-hints');
+    if (s) s.addEventListener('click', () => start('normal'));
+    if (d) d.addEventListener('click', () => start('daily'));
+    if (r) r.addEventListener('click', () => { hintsSeen = {}; store.set('cw-hints', '{}'); r.textContent = tr('hintsOn'); r.disabled = true; });
+    if (s) s.focus({ preventScroll: true });
+  }
+  function langRow() {
+    return `<div class="row lang" role="group" aria-label="${tr('lang')}">
+        <span>${tr('lang')}:</span>
+        <button class="link" type="button" data-lang="en" aria-pressed="${LANG === 'en'}">English</button>
+        <button class="link" type="button" data-lang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
+        <button class="link" type="button" id="card-mute" aria-pressed="${!muted}">${muted ? tr('soundOff') : tr('soundOn')}</button>
+      </div>`;
+  }
+  function showStart() {
+    const db = dailyBest();
+    card.innerHTML = `
+      ${langRow()}
+      <h2>Context Window</h2>
+      <p>${tr('introP')}</p>
+      <ul>${tr('rules')}</ul>
+      <div class="row">
+        <button class="primary" id="btn-start" type="button">${tr('btnStart')}</button>
+        <button class="secondary" id="btn-daily" type="button">${tr('btnDaily', today().label)}${db ? ' · ' + db : ''}</button>
+      </div>
+      <p>${tr('commitsP', commits)}</p>
+      ${perksHtml()}
+      <div class="row"><button class="link" id="btn-hints" type="button">${tr('hintsReset')}</button></div>`;
+    overlay.hidden = false;
+    card.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => {
+      setLang(b.dataset.lang);
+      if (G && !G.started) newGame('normal');
+      showStart();
+      const again = card.querySelector(`[data-lang="${LANG}"]`);
+      if (again) again.focus({ preventScroll: true });
+    }));
+    const cm = el('card-mute');
+    if (cm) cm.addEventListener('click', () => { toggleMute(); cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); });
+    wireButtons();
+  }
+  function start(mode) {
+    audioOn();
+    newGame(mode || 'normal');
     G.started = true;
     overlay.hidden = true;
     hud();
   }
   function showDeath() {
-    const s = G.stats;
+    const st = G.stats;
+    const daily = G.mode === 'daily';
     card.innerHTML = `
       <h2 class="dead">Context overflow</h2>
-      <p>Контекст переполнился. Последним шум добавил ${G.killedBy || 'неизвестный источник'}.</p>
+      <p>${tr('deadP', G.killedBy || tr('unknown'))}</p>
       <dl class="stats">
-        <dt>Этаж</dt><dd>${G.floor}</dd>
-        <dt>Ходов</dt><dd>${G.turn}</dd>
-        <dt>Врагов устранено</dt><dd>${s.kills}</dd>
-        <dt>Компакций</dt><dd>${s.compactions}</dd>
-        <dt>Шума получено</dt><dd>${s.noise}k</dd>
-        <dt>Токенов на инструменты</dt><dd>${s.tools}k</dd>
-        <dt>Счёт</dt><dd>${G.score}</dd>
-        <dt>Рекорд</dt><dd>${best}</dd>
+        <dt>${tr('st_mode')}</dt><dd>${daily ? tr('st_daily', G.dailyLabel) : tr('st_normal')}</dd>
+        <dt>${tr('st_floor')}</dt><dd>${G.floor}</dd>
+        <dt>${tr('st_turns')}</dt><dd>${G.turn}</dd>
+        <dt>${tr('st_kills')}</dt><dd>${st.kills}</dd>
+        <dt>${tr('st_bosses')}</dt><dd>${st.bosses}</dd>
+        <dt>${tr('st_comp')}</dt><dd>${st.compactions}</dd>
+        <dt>${tr('st_noise')}</dt><dd>${st.noise}k</dd>
+        <dt>${tr('st_tools')}</dt><dd>${st.tools}k</dd>
+        <dt>${tr('st_score')}</dt><dd>${G.score}</dd>
+        <dt>${daily ? tr('st_bestDay') : tr('st_best')}</dt><dd>${daily ? dailyBest() : best}</dd>
       </dl>
-      <button class="primary" id="again" type="button">Новая сессия</button>`;
+      <p>${daily ? tr('dailyNoCommits') : tr('earned', G.earned, commits)}</p>
+      ${G.newPerks && G.newPerks.length ? `<p class="new-unlock">${tr('unlocked', G.newPerks.map(perkLabel).join(', '))}</p>` : ''}
+      <div class="row">
+        <button class="primary" id="btn-start" type="button">${tr('btnNew')}</button>
+        <button class="secondary" id="btn-daily" type="button">${tr('btnDaily', today().label)}</button>
+      </div>`;
     overlay.hidden = false;
-    el('again').addEventListener('click', start);
-    el('again').focus({ preventScroll: true });
+    wireButtons();
     hud();
   }
 
   // ---------- input ----------
-  // e.code is the physical key, so this works in any keyboard layout
   const MOVES = {
     ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
     KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0],
@@ -1209,14 +2001,13 @@
   const ACTIONS = {
     Space: ['wait'], Period: ['wait'],
     KeyR: ['tool', 'read'], KeyG: ['tool', 'grep'], KeyB: ['tool', 'bash'],
-    KeyC: ['compact'], KeyX: ['clear'],
+    KeyC: ['compact'], KeyX: ['clear'], KeyQ: ['sub'],
   };
-
-  // Held directions: the game repeats the step itself instead of waiting for the OS key repeat.
   const HOLD_DELAY = 0.15;
-  const held = []; // [{ id, dir, t }], last one wins
+  const held = [];
   function press(id, dir) {
     release(id);
+    G.interrupt = false;
     held.push({ id, dir, t: T });
     act('move', dir);
   }
@@ -1226,15 +2017,27 @@
   }
   function holdTick() {
     const h = held[held.length - 1];
-    if (!h || T - h.t < HOLD_DELAY) return;
+    if (!h) return;
+    if (G.interrupt) { held.length = 0; G.interrupt = false; return; }
+    if (T - h.t < HOLD_DELAY) return;
     if (!G.started || G.over || G.queue || busy()) return;
     act('move', h.dir);
+  }
+  function toggleMute() {
+    muted = !muted;
+    store.set('cw-mute', muted ? '1' : '0');
+    if (!muted) { audioOn(); sfx('pickup'); }
+    el('mute').textContent = muted ? tr('soundOff') : tr('soundOn');
+    const cm = el('card-mute');
+    if (cm) { cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); }
   }
 
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    audioOn();
+    if (e.code === 'KeyM') { toggleMute(); return; }
     if (!G.started || G.over) {
-      if ((e.key === 'Enter') && !overlay.hidden && (!G.over || G.deathShown)) { e.preventDefault(); start(); }
+      if (e.key === 'Enter' && !overlay.hidden && (!G.over || G.deathShown) && !(e.target && e.target.tagName === 'BUTTON')) { e.preventDefault(); start('normal'); }
       return;
     }
     const dir = MOVES[e.code];
@@ -1253,7 +2056,7 @@
   window.addEventListener('blur', () => { held.length = 0; });
 
   let touch = null;
-  cv.addEventListener('touchstart', e => { const t = e.changedTouches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
+  cv.addEventListener('touchstart', e => { audioOn(); const t = e.changedTouches[0]; touch = { x: t.clientX, y: t.clientY }; }, { passive: true });
   cv.addEventListener('touchend', e => {
     if (!touch) return;
     const t = e.changedTouches[0], dx = t.clientX - touch.x, dy = t.clientY - touch.y;
@@ -1264,7 +2067,7 @@
   document.querySelectorAll('[data-dir]').forEach(b => {
     const id = 'pad' + b.dataset.dir;
     const dir = b.dataset.dir.split(',').map(Number);
-    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(id, dir); });
+    b.addEventListener('pointerdown', e => { e.preventDefault(); audioOn(); b.setPointerCapture(e.pointerId); press(id, dir); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, () => release(id)));
     b.addEventListener('contextmenu', e => e.preventDefault());
   });
@@ -1274,10 +2077,13 @@
   el('b-bash').addEventListener('click', () => act('tool', 'bash'));
   el('b-compact').addEventListener('click', () => act('compact'));
   el('b-clear').addEventListener('click', () => act('clear'));
+  el('b-sub').addEventListener('click', () => act('sub'));
   el('b-wait').addEventListener('click', () => act('wait'));
+  el('mute').addEventListener('click', toggleMute);
 
   // ---------- boot ----------
-  newGame();
+  applyStatic();
+  newGame('normal');
   showStart();
   let last = performance.now();
   function frame(now) {
@@ -1291,6 +2097,10 @@
   requestAnimationFrame(frame);
 
   // test hook for automated checks
-  window.__cw = { get G() { return G; }, get P() { return P; }, get ents() { return ents; }, get stairs() { return stairs; }, bfsFrom, idx, act };
+  window.__cw = {
+    get G() { return G; }, get P() { return P; }, get ents() { return ents; }, get stairs() { return stairs; },
+    get allies() { return allies; }, bfsFrom, idx, act, start, total,
+    toFloor(n) { G.floor = n - 1; nextFloor(); hud(); }, setLang,
+  };
 })();
 </script>
