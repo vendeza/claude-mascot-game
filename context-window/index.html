@@ -542,9 +542,22 @@
 
   // ---------- sound ----------
   let actx = null;
+  let unlocked = false;
   function audioOn() {
+    // iOS: play Web Audio as media so the silent switch doesn't mute it
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
     if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
-    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+    if (!actx) return;
+    if (actx.state !== 'running') actx.resume().catch(() => {});
+    if (!unlocked) {
+      // older iOS only starts output after a buffer is played inside a user gesture
+      try {
+        const src = actx.createBufferSource();
+        src.buffer = actx.createBuffer(1, 1, 22050);
+        src.connect(actx.destination); src.start(0);
+        unlocked = true;
+      } catch (e) {}
+    }
   }
   function tone(f0, f1, dur, type, vol, delay) {
     if (muted || !actx) return;
@@ -595,7 +608,7 @@
   // bass: 'calm' = root on beats 1 and 3, 'drive' = root every 8th, 'octave' = root/octave bounce
   const TRACKS = {
     calm: {
-      name: 'Night Shift', bpm: 96, bass: 'calm', leadType: 'triangle', leadVol: 0.035, leadEvery: 2,
+      name: 'Night Shift', bpm: 96, bass: 'calm', leadType: 'triangle', leadVol: 0.035, leadEvery: 1,
       chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]],
       roots: [45, 41, 43, 40],
       lead: [76, 0, 74, 72, 74, 0, 69, 0, 72, 0, 74, 76, 77, 0, 76, 0, 74, 0, 71, 74, 79, 0, 77, 76, 74, 0, 71, 0, 69, 0, 0, 0],
@@ -646,7 +659,7 @@
     if (kind === 'kick') {
       const o = actx.createOscillator(), g = actx.createGain();
       o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
       o.connect(g).connect(M.bus); o.start(t); o.stop(t + 0.17);
       return;
     }
@@ -656,20 +669,20 @@
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
     src.buffer = buf; f.type = 'highpass'; f.frequency.value = kind === 'snare' ? 1200 : 6000;
-    g.gain.setValueAtTime(kind === 'snare' ? 0.05 : 0.012, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime(kind === 'snare' ? 0.08 : 0.025, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f).connect(g).connect(M.bus); src.start(t);
   }
   function playStep(tr, step, t, sd) {
     const i = step % 32, bar = Math.floor(i / 8), beat = i % 8, loop = Math.floor(step / 32);
     const chord = tr.chords[bar], root = tr.roots[bar];
-    if (tr.bass === 'calm') { if (beat % 4 === 0) mnote(root, t, sd * 1.8, 'triangle', 0.08); }
-    else if (tr.bass === 'drive') mnote(root, t, sd * 0.9, 'triangle', 0.09);
-    else mnote(root + (beat % 2 ? 12 : 0), t, sd * 0.85, 'triangle', 0.09);
+    if (tr.bass === 'calm') { if (beat % 4 === 0) mnote(root + 12, t, sd * 1.8, 'triangle', 0.14); }
+    else if (tr.bass === 'drive') mnote(root + 12, t, sd * 0.9, 'triangle', 0.13);
+    else mnote(root + 12 + (beat % 2 ? 12 : 0), t, sd * 0.85, 'triangle', 0.13);
     const arp = [0, 1, 2, 1, 0, 1, 2, 1][beat];
-    mnote(chord[arp] + 12, t, sd * 0.8, 'square', 0.012);
+    mnote(chord[arp] + 12, t, sd * 0.8, 'square', 0.028);
     if (loop % tr.leadEvery === tr.leadEvery - 1) {
       const n = tr.lead[i];
-      if (n) mnote(n, t, sd * 1.6, tr.leadType, tr.leadVol);
+      if (n) mnote(n, t, sd * 1.6, tr.leadType, tr.leadVol * 2);
     }
     if (tr.kicks.includes(beat)) mdrum('kick', t);
     if (tr.snares.includes(beat)) mdrum('snare', t);
@@ -690,10 +703,10 @@
   function musicTick() {
     if (!actx || !M.track) return;
     const tr = TRACKS[M.track];
-    const sd = 60 / tr.bpm / tr.sub;
-    if (M.next < actx.currentTime) M.next = actx.currentTime + 0.05;
+    const sd = 60 / tr.bpm / 2; // 8th-note steps
+    if (!(M.next >= actx.currentTime)) M.next = actx.currentTime + 0.05;
     while (M.next < actx.currentTime + 0.15) {
-      try { playStep(tr, M.step, M.next, sd); } catch (e) {}
+      try { playStep(tr, M.step, M.next, sd); } catch (e) { if (!M.warned) { M.warned = true; console.error('music step failed', e); } }
       M.next += sd; M.step++;
     }
   }
@@ -712,7 +725,10 @@
     if (M.track === track && M.timer) return;
     musicStop();
     M.want = track; M.track = track; M.step = 0; M.next = actx.currentTime + 0.1;
-    M.bus = actx.createGain(); M.bus.gain.value = 0.9; M.bus.connect(actx.destination);
+    M.bus = actx.createGain(); M.bus.gain.value = 1.0;
+    const comp = actx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4;
+    M.bus.connect(comp).connect(actx.destination);
     M.timer = setInterval(musicTick, 30);
     musicTick();
   }
@@ -2219,6 +2235,7 @@
     if (!e.repeat) act(m[0], m[1]);
   });
   window.addEventListener('keyup', e => release(e.code));
+  window.addEventListener('pointerdown', audioOn, { passive: true });
   window.addEventListener('blur', () => { held.length = 0; });
 
   let touch = null;
@@ -2270,6 +2287,15 @@
     get allies() { return allies; }, bfsFrom, idx, act, start, total,
     toFloor(n) { G.floor = n - 1; nextFloor(); hud(); }, setLang,
     get music() { return { track: M.track, step: M.step, ctx: actx && actx.state }; },
+    musicLevel(ms) {
+      return new Promise(res => {
+        if (!M.bus) return res(0);
+        const an = actx.createAnalyser(); an.fftSize = 2048; M.bus.connect(an);
+        const buf = new Float32Array(an.fftSize); let peak = 0;
+        const iv = setInterval(() => { an.getFloatTimeDomainData(buf); for (const v of buf) peak = Math.max(peak, Math.abs(v)); }, 20);
+        setTimeout(() => { clearInterval(iv); res(peak); }, ms);
+      });
+    },
   };
 })();
 </script>
