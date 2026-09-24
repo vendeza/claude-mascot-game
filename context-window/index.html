@@ -1340,7 +1340,7 @@
       rings.push({ x: wx(P.x), y: wy(P.y) - 6, r: 4, max: 140, life: 1, c: COL.tool });
       log(tr('l_grep', G.grep), 'tool');
     } else if (id === 'bash') {
-      if (chance(0.1)) {
+      if (!G.demo && chance(0.1)) {
         sfx('denied');
         log(tr('l_denied'), 'hit');
         text('Permission denied', COL.noise, wx(P.x), wy(P.y) - 32);
@@ -2665,7 +2665,12 @@
     get G() { return G; }, get P() { return P; }, get ents() { return ents; }, get stairs() { return stairs; },
     get allies() { return allies; }, bfsFrom, idx, act, start, total,
     toFloor(n) { G.floor = n - 1; nextFloor(); hud(); }, setLang,
-    get npc() { return G.npc; }, get dialog() { return { open: DLG.open, text: DLG.text }; },
+    get npc() { return G.npc; }, get dialog() { return { open: DLG.open, text: DLG.text, shown: DLG.shown, page: DLG.page, pages: DLG.pages.length }; },
+    get actx() { return actx; }, get theme() { return themeFor(G.floor).name; }, isFloor,
+    // scripting helpers used to record demo videos
+    spawn(type, x, y, extra) { const e = makeEnt(type, x, y, Object.assign({ awake: true }, extra || {})); ents.push(e); computeIntents(); return e; },
+    give(id) { if (!has(id)) G.items.push({ id, sum: false }); hud(); },
+    openDialog, advanceDialog, closeDialog, hud, computeFOV, computeIntents,
     get music() { return { track: M.track, step: M.step, ctx: actx && actx.state }; },
     musicLevel(ms) {
       return new Promise(res => {
