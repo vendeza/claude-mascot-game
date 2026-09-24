@@ -764,7 +764,7 @@
     }
 
     seen = new Uint8Array(MW * MH);
-    G.grep = 0; G.knownVisible = new Set();
+    G.grep = 0; G.loopCopies = 0; G.knownVisible = new Set();
     computeFOV();
     computeIntents();
     if (G.floor > 1) log(bossFloor ? tr('l_floorBoss', G.floor) : tr('l_floor', G.floor), 'sys');
@@ -952,7 +952,8 @@
   function kill(e, by) {
     ents = ents.filter(o => o !== e);
     const f = FOES[e.type];
-    G.score += f.score; G.stats.kills++;
+    const pts = e.copy ? 5 : f.score;
+    G.score += pts; G.stats.kills++;
     G.hitstop = 0.05;
     sfx('kill');
     const c = { bug: COL.bug, ghost: COL.ghost, mimic: COL.ghost, loop: COL.loop, merge: COL.merge, flaky: COL.flakyOk, limiter: COL.limiter, module: COL.stoneHi }[e.type];
@@ -970,7 +971,7 @@
         text('resolved', COL.ok, wx(e.x), wy(e.y) - 20);
       }
     } else if (loud) {
-      log(tr('l_killed', f.name, by === 'ally', f.score), by === 'ally' ? 'ally' : 'ok');
+      log(tr('l_killed', f.name, by === 'ally', pts), by === 'ally' ? 'ally' : 'ok');
     }
   }
 
@@ -1177,12 +1178,15 @@
     }
     bossTurn();
     if (G.turn % 6 === 0) {
-      const loops = ents.filter(e => e.type === 'loop' && e.awake);
+      // only original loops replicate, at most twice each and 6 copies per floor
+      const loops = ents.filter(e => e.type === 'loop' && e.awake && !e.copy && (e.spawned || 0) < 2);
       for (const e of loops) {
-        if (ents.filter(o => o.type === 'loop').length >= 10) break;
+        if (G.loopCopies >= 6) break;
         const spot = adjacentFree(e.x, e.y);
         if (!spot) continue;
-        ents.push(makeEnt('loop', spot[0], spot[1], { awake: true, px: e.x, py: e.y, moveT: 0 }));
+        e.spawned = (e.spawned || 0) + 1;
+        G.loopCopies++;
+        ents.push(makeEnt('loop', spot[0], spot[1], { awake: true, px: e.x, py: e.y, moveT: 0, copy: true }));
         if (vis[idx(spot[0], spot[1])]) { log(tr('l_loopMult'), 'hit'); text('+1', COL.loop, wx(spot[0]), wy(spot[1]) - 18); }
       }
     }
@@ -1572,15 +1576,15 @@
     ctx.fillStyle = COL.bg; ctx.fillRect(cx - 3, y0 + 4, 2, 3); ctx.fillRect(cx + 2, y0 + 4, 2, 3); ctx.fillRect(cx - 1, y0 + 9, 3, 1);
   }
   function drawLoop(cx, cy, e) {
-    const ox = cx, oy = cy - 8, a0 = T * 5 + e.id;
+    const r = e.copy ? 4 : 6, ox = cx, oy = cy - (e.copy ? 6 : 8), a0 = T * 5 + e.id;
     ctx.fillStyle = e.flash > 0 ? COL.white : COL.loop;
     for (let i = 0; i < 30; i++) {
       const a = a0 + (i / 30) * Math.PI * 2 * 0.8;
-      ctx.fillRect(Math.round(ox + Math.cos(a) * 6), Math.round(oy + Math.sin(a) * 6), 1, 1);
-      ctx.fillRect(Math.round(ox + Math.cos(a) * 5), Math.round(oy + Math.sin(a) * 5), 1, 1);
+      ctx.fillRect(Math.round(ox + Math.cos(a) * r), Math.round(oy + Math.sin(a) * r), 1, 1);
+      if (!e.copy) ctx.fillRect(Math.round(ox + Math.cos(a) * (r - 1)), Math.round(oy + Math.sin(a) * (r - 1)), 1, 1);
     }
     const ae = a0 + Math.PI * 2 * 0.8;
-    ctx.fillRect(Math.round(ox + Math.cos(ae) * 5.5) - 1, Math.round(oy + Math.sin(ae) * 5.5) - 1, 3, 3);
+    ctx.fillRect(Math.round(ox + Math.cos(ae) * (r - 0.5)) - 1, Math.round(oy + Math.sin(ae) * (r - 0.5)) - 1, e.copy ? 2 : 3, e.copy ? 2 : 3);
     ctx.fillRect(ox - 2, oy - 1, 1, 2); ctx.fillRect(ox + 2, oy - 1, 1, 2);
   }
   function drawMerge(cx, cy, e) {
