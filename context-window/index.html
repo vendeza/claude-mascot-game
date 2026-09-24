@@ -181,6 +181,7 @@
       <span><span data-i18n="score">Score</span> <b id="score">0</b></span>
       <span><span data-i18n="best">Best</span> <b id="best">0</b></span>
       <button class="link" id="mute" type="button">Sound: on</button>
+      <button class="link" id="music" type="button">Music: on</button>
     </div>
   </div>
 
@@ -350,14 +351,14 @@
   // ---------- localization ----------
   const I18N = {
     en: {
-      floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off',
+      floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off', musicOn: 'Music: on', musicOff: 'Music: off',
       ctx: 'Context', ctxAria: 'Context window', gameAria: 'Game board', ready: 'ready',
       inTurns: n => `in ${n} ${n === 1 ? 'turn' : 'turns'}`, eff: p => `· ${p}% compression`,
       grepLeft: n => `Grep ${n} more`, allyLeft: n => `subagent ${n}`, frozen: '429: frozen',
       lgSys: 'system prompt', lgItems: 'items', lgOut: 'tool output', lgNoise: 'damage noise',
       hActions: 'Actions', hLog: 'Session log', hInv: 'In context', wait: 'Wait a turn', space: 'Space', padWait: 'wait',
       waitAria: 'Wait', up: 'Up', left: 'Left', right: 'Right', down: 'Down',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> toggles sound.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> sound, <kbd>N</kbd> music.',
       footer: 'Fan game. Not affiliated with or made by Anthropic.',
       daily: d => `Daily ${d}`, invEmpty: 'Empty. Items are scattered across floors.', forget: 'Forget',
       forgetTitle: n => `Remove ${n} from context`, summary: 'summary', notFound: n => `${n} not found yet`, perk: n => `Start with ${n}`,
@@ -435,14 +436,14 @@
       unlocked: l => `Unlocked: ${l}`,
     },
     ru: {
-      floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл',
+      floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл',
       ctx: 'Контекст', ctxAria: 'Контекстное окно', gameAria: 'Игровое поле', ready: 'готова',
       inTurns: n => `через ${n} ${plural(n, 'ход', 'хода', 'ходов')}`, eff: p => `· сжатие ${p}%`,
       grepLeft: n => `Grep ещё ${n}`, allyLeft: n => `сабагент ${n}`, frozen: '429: заморожен',
       lgSys: 'системный промпт', lgItems: 'предметы', lgOut: 'вывод инструментов', lgNoise: 'шум от урона',
       hActions: 'Действия', hLog: 'Лог сессии', hInv: 'В контексте', wait: 'Ждать ход', space: 'Пробел', padWait: 'ждать',
       waitAria: 'Ждать', up: 'Вверх', left: 'Влево', right: 'Вправо', down: 'Вниз',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук, <kbd>N</kbd> — музыка.',
       footer: 'Фанатская игра. Не связана с Anthropic и не является её продуктом.',
       daily: d => `Ежедневный ${d}`, invEmpty: 'Пусто. Предметы лежат на этажах.', forget: 'Забыть',
       forgetTitle: n => `Убрать ${n} из контекста`, summary: 'саммари', notFound: n => `${n} ещё не найден`, perk: n => `Старт с ${n}`,
@@ -587,6 +588,106 @@
     ally: () => tone(400, 900, 0.15, 'triangle', 0.05),
   };
   function sfx(n) { try { if (SFX[n]) SFX[n](); } catch (e) {} }
+
+  // ---------- music: a tiny step sequencer on top of WebAudio ----------
+  let musicOn = store.get('cw-music') !== '0';
+  const TRACKS = {
+    calm: {
+      bpm: 96, sub: 2,
+      chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]],
+      bass: [45, 41, 43, 40],
+      lead: [76, 0, 74, 72, 74, 0, 69, 0, 72, 0, 74, 76, 77, 0, 76, 0, 74, 0, 71, 74, 79, 0, 77, 76, 74, 0, 71, 0, 69, 0, 0, 0],
+      leadEvery: 2, drums: false,
+    },
+    boss: {
+      bpm: 150, sub: 2,
+      chords: [[62, 65, 69], [58, 62, 65], [60, 64, 67], [57, 61, 64]],
+      bass: [38, 34, 36, 33],
+      lead: [74, 74, 0, 77, 76, 74, 0, 72, 70, 0, 72, 74, 77, 0, 74, 0, 72, 72, 0, 76, 79, 77, 76, 74, 73, 0, 76, 0, 81, 0, 0, 0],
+      leadEvery: 1, drums: true,
+    },
+  };
+  const mfreq = m => 440 * Math.pow(2, (m - 69) / 12);
+  const M = { track: null, step: 0, next: 0, timer: null, bus: null };
+  function mnote(midi, t, dur, type, vol) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(mfreq(midi), t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(M.bus);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function mdrum(kind, t) {
+    if (kind === 'kick') {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      o.connect(g).connect(M.bus); o.start(t); o.stop(t + 0.17);
+      return;
+    }
+    const dur = kind === 'snare' ? 0.1 : 0.03;
+    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; f.type = 'highpass'; f.frequency.value = kind === 'snare' ? 1200 : 6000;
+    g.gain.setValueAtTime(kind === 'snare' ? 0.05 : 0.012, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(M.bus); src.start(t);
+  }
+  function playStep(tr, step, t, sd) {
+    const i = step % 32, bar = Math.floor(i / 8), beat = i % 8, loop = Math.floor(step / 32);
+    const chord = tr.chords[bar];
+    if (tr.drums || beat % 4 === 0) {
+      mnote(tr.bass[bar], t, sd * (tr.drums ? 0.9 : 1.8), 'triangle', tr.drums ? 0.09 : 0.08);
+    }
+    const arp = [0, 1, 2, 1, 0, 1, 2, 1][beat];
+    mnote(chord[arp] + 12, t, sd * 0.8, 'square', 0.012);
+    if (loop % tr.leadEvery === tr.leadEvery - 1 || tr.leadEvery === 1) {
+      const n = tr.lead[i];
+      if (n) mnote(n, t, sd * 1.6, 'triangle', 0.035);
+    }
+    if (tr.drums) {
+      if (beat % 4 === 0) mdrum('kick', t);
+      if (beat % 4 === 2) mdrum('snare', t);
+      mdrum('hat', t);
+    } else if (beat % 2 === 1) {
+      mdrum('hat', t);
+    }
+  }
+  function musicTick() {
+    if (!actx || !M.track) return;
+    const tr = TRACKS[M.track];
+    const sd = 60 / tr.bpm / tr.sub;
+    if (M.next < actx.currentTime) M.next = actx.currentTime + 0.05;
+    while (M.next < actx.currentTime + 0.15) {
+      try { playStep(tr, M.step, M.next, sd); } catch (e) {}
+      M.next += sd; M.step++;
+    }
+  }
+  function musicStop() {
+    if (M.timer) { clearInterval(M.timer); M.timer = null; }
+    if (M.bus && actx) {
+      const b = M.bus;
+      b.gain.setValueAtTime(b.gain.value, actx.currentTime);
+      b.gain.linearRampToValueAtTime(0, actx.currentTime + 0.3);
+      setTimeout(() => { try { b.disconnect(); } catch (e) {} }, 400);
+    }
+    M.bus = null; M.track = null;
+  }
+  function musicPlay(track) {
+    if (!musicOn || !actx) { M.want = track; return; }
+    if (M.track === track && M.timer) return;
+    musicStop();
+    M.want = track; M.track = track; M.step = 0; M.next = actx.currentTime + 0.1;
+    M.bus = actx.createGain(); M.bus.gain.value = 0.9; M.bus.connect(actx.destination);
+    M.timer = setInterval(musicTick, 30);
+    musicTick();
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!actx) return;
+    if (document.hidden) actx.suspend().catch(() => {}); else actx.resume().catch(() => {});
+  });
 
   // ---------- canvas ----------
   const cv = el('game');
@@ -769,6 +870,7 @@
     computeIntents();
     if (G.floor > 1) log(bossFloor ? tr('l_floorBoss', G.floor) : tr('l_floor', G.floor), 'sys');
     if (bossFloor) hint('boss');
+    if (G.started) musicPlay(bossFloor ? 'boss' : 'calm');
   }
 
   // ---------- FOV ----------
@@ -982,6 +1084,7 @@
     log(tr('l_module', 4 - left), 'ok');
     if (left === 0) {
       B.dead = true; B.slam = false;
+      musicPlay('calm');
       stairs = { x: B.bx, y: B.by };
       G.score += 300; G.stats.bosses++;
       shake(0.5); sfx('boss');
@@ -1150,6 +1253,7 @@
     held.length = 0;
     setAnim('death');
     sfx('death');
+    musicStop();
     shake(0.4);
     G.earned = G.score;
     G.newPerks = [];
@@ -1894,6 +1998,7 @@
     el('b-clear').disabled = !has('clear');
     el('b-sub').disabled = !has('subagent');
     el('mute').textContent = muted ? tr('soundOff') : tr('soundOn');
+    syncMusicButtons();
     renderInv();
   }
   function renderInv() {
@@ -1933,6 +2038,7 @@
         <button class="link" type="button" data-lang="en" aria-pressed="${LANG === 'en'}">English</button>
         <button class="link" type="button" data-lang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
         <button class="link" type="button" id="card-mute" aria-pressed="${!muted}">${muted ? tr('soundOff') : tr('soundOn')}</button>
+        <button class="link" type="button" id="card-music" aria-pressed="${musicOn}">${musicOn ? tr('musicOn') : tr('musicOff')}</button>
       </div>`;
   }
   function showStart() {
@@ -1958,6 +2064,8 @@
       if (again) again.focus({ preventScroll: true });
     }));
     const cm = el('card-mute');
+    const cmu = el('card-music');
+    if (cmu) cmu.addEventListener('click', toggleMusic);
     if (cm) cm.addEventListener('click', () => { toggleMute(); cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); });
     wireButtons();
   }
@@ -1966,6 +2074,7 @@
     newGame(mode || 'normal');
     G.started = true;
     overlay.hidden = true;
+    musicPlay(G.floor % 5 === 0 ? 'boss' : 'calm');
     hud();
   }
   function showDeath() {
@@ -2035,11 +2144,25 @@
     const cm = el('card-mute');
     if (cm) { cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); }
   }
+  function toggleMusic() {
+    musicOn = !musicOn;
+    store.set('cw-music', musicOn ? '1' : '0');
+    if (musicOn) { audioOn(); if (G && G.started && !G.over) musicPlay(M.want || 'calm'); }
+    else { const w = M.track || M.want; musicStop(); M.want = w; }
+    syncMusicButtons();
+  }
+  function syncMusicButtons() {
+    const t = musicOn ? tr('musicOn') : tr('musicOff');
+    el('music').textContent = t;
+    const cm = el('card-music');
+    if (cm) { cm.textContent = t; cm.setAttribute('aria-pressed', String(musicOn)); }
+  }
 
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     audioOn();
     if (e.code === 'KeyM') { toggleMute(); return; }
+    if (e.code === 'KeyN') { toggleMusic(); return; }
     if (!G.started || G.over) {
       if (e.key === 'Enter' && !overlay.hidden && (!G.over || G.deathShown) && !(e.target && e.target.tagName === 'BUTTON')) { e.preventDefault(); start('normal'); }
       return;
@@ -2084,6 +2207,7 @@
   el('b-sub').addEventListener('click', () => act('sub'));
   el('b-wait').addEventListener('click', () => act('wait'));
   el('mute').addEventListener('click', toggleMute);
+  el('music').addEventListener('click', toggleMusic);
 
   // ---------- boot ----------
   applyStatic();
@@ -2105,6 +2229,7 @@
     get G() { return G; }, get P() { return P; }, get ents() { return ents; }, get stairs() { return stairs; },
     get allies() { return allies; }, bfsFrom, idx, act, start, total,
     toFloor(n) { G.floor = n - 1; nextFloor(); hud(); }, setLang,
+    get music() { return { track: M.track, step: M.step, ctx: actx && actx.state }; },
   };
 })();
 </script>
