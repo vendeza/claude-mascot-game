@@ -81,6 +81,21 @@
     pointer-events: none;
   }
   .hint[hidden] { display: none; }
+  .dialog {
+    position: absolute; left: 10px; right: 10px; bottom: 10px;
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start;
+    padding: 12px;
+    background: rgba(24, 20, 17, 0.97);
+    border: 1px solid #5a7385; border-radius: 6px;
+  }
+  .dialog[hidden] { display: none; }
+  #portrait { width: 72px; height: 72px; image-rendering: pixelated; background: #1f2830; border-radius: 4px; }
+  .dialog .who { font-family: "Silkscreen", monospace; font-size: 14px; color: #9fc4d8; margin: 0 0 4px; }
+  .dialog .say { margin: 0; min-height: 3em; font-size: 14px; line-height: 1.45; color: var(--text); }
+  .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .dialog .actions button { font: 13px "IBM Plex Mono", monospace; color: var(--text); background: var(--panel-2); border: 1px solid #5a7385; border-radius: 5px; padding: 6px 12px; cursor: pointer; }
+  .dialog .actions button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .dialog .actions kbd { font: 11px "IBM Plex Mono", monospace; color: var(--muted); margin-left: 6px; }
   .hint b { color: var(--clawd); font-weight: 500; }
 
   .overlay {
@@ -206,6 +221,14 @@
     <div class="viewport">
       <canvas id="game" width="1056" height="864" data-i18n-aria="gameAria" aria-label="Game board"></canvas>
       <div class="hint" id="hint" hidden></div>
+      <div class="dialog" id="dialog" role="dialog" aria-labelledby="dlg-who" hidden>
+        <canvas id="portrait" width="32" height="32" aria-hidden="true"></canvas>
+        <div>
+          <p class="who" id="dlg-who">The Maintainer</p>
+          <p class="say" id="dlg-say"></p>
+          <div class="actions"><button type="button" id="dlg-close"><span data-i18n="close">Close</span><kbd>Esc</kbd></button></div>
+        </div>
+      </div>
       <div class="overlay" id="overlay">
         <div class="card" id="card"></div>
       </div>
@@ -435,6 +458,24 @@
       dailyNoCommits: 'The daily run doesn\u2019t add commits.',
       earned: (e, t) => `+${e} commits. Total: <b>${t}</b>.`,
       unlocked: l => `Unlocked: ${l}`,
+      close: 'Close',
+      npcLines: [
+        'Context isn\u2019t memory. It\u2019s attention. Spend it on what matters.',
+        'Every bug you fix is one someone else never has to meet.',
+        'Don\u2019t fear /compact. Forgetting the details is a skill too.',
+        'Legacy code is just code that survived. Respect it, then refactor it.',
+        'Read before you write. Most hallucinations die at the first honest look.',
+        'Small commits, frequent pushes. Nobody ever regretted a clean diff.',
+        'A flaky test is a question you haven\u2019t answered yet.',
+        'Stuck in an infinite loop? Find the one that started it.',
+        'You don\u2019t have to fix everything today. Just the next thing.',
+        'The best tool is the one you actually call. The rest is dead weight.',
+        'Rest is part of the build. Even servers need maintenance windows.',
+        'A merge conflict is just two people who cared. Resolve them both.',
+        'Ship it. Then make it better. In that order.',
+        'Rate limits are the universe asking you to breathe.',
+        'Go on. The stairs won\u2019t push themselves.',
+      ],
     },
     ru: {
       floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл', track: 'Трек', trackAuto: 'Авто',
@@ -520,6 +561,24 @@
       dailyNoCommits: 'Ежедневный забег не пополняет коммиты.',
       earned: (e, t) => `+${e} коммитов. Всего: <b>${t}</b>.`,
       unlocked: l => `Открыто: ${l}`,
+      close: 'Закрыть',
+      npcLines: [
+        'Контекст — это не память. Это внимание. Трать его на то, что важно.',
+        'Каждый баг, который ты починил, кто-то другой уже никогда не встретит.',
+        'Не бойся /compact. Забывать детали — тоже навык.',
+        'Легаси — это просто код, который выжил. Уважай его, а потом рефактори.',
+        'Сначала читай, потом пиши. Большинство галлюцинаций исчезают от первого честного взгляда.',
+        'Маленькие коммиты, частые пуши. Никто ещё не жалел о чистом диффе.',
+        'Флейки-тест — это вопрос, на который ты ещё не ответил.',
+        'Застрял в бесконечном цикле? Найди тот, с которого всё началось.',
+        'Не нужно чинить всё сегодня. Только следующее.',
+        'Лучший инструмент — тот, который ты правда вызываешь. Остальное — лишний вес.',
+        'Отдых — часть сборки. Даже серверам нужны окна обслуживания.',
+        'Merge conflict — это двое, кому было не всё равно. Разреши обоих.',
+        'Выкати. Потом улучши. Именно в таком порядке.',
+        'Rate limit — это вселенная просит тебя выдохнуть.',
+        'Иди. Лестница сама себя не запушит.',
+      ],
     },
   };
   let LANG = store.get('cw-lang') === 'ru' ? 'ru' : 'en';
@@ -757,7 +816,8 @@
   const isFloor = (x, y) => inb(x, y) && map[idx(x, y)] === 0;
   const entAt = (x, y) => ents.find(e => e.x === x && e.y === y);
   const allyAt = (x, y) => allies.find(a => a.x === x && a.y === y);
-  const occupied = (x, y) => (P.x === x && P.y === y) || !!entAt(x, y) || !!allyAt(x, y);
+  const npcAt = (x, y) => !!(G && G.npc && G.npc.x === x && G.npc.y === y);
+  const occupied = (x, y) => (P.x === x && P.y === y) || !!entAt(x, y) || !!allyAt(x, y) || npcAt(x, y);
   const has = id => G.items.some(i => i.id === id);
   const getItem = id => G.items.find(i => i.id === id);
   const itemSize = it => it.sum ? Math.ceil(ITEMS[it.id].size / 2) : ITEMS[it.id].size;
@@ -854,11 +914,12 @@
 
   function nextFloor() {
     G.floor++;
-    ents = []; floorItems = []; stairs = null; allies = []; G.boss = null;
+    ents = []; floorItems = []; stairs = null; allies = []; G.boss = null; G.npc = null;
     const bossFloor = G.floor % 5 === 0;
     if (bossFloor) genBossMap(); else genMap();
     const start = rooms[0];
     P.x = P.px = start.cx; P.y = P.py = start.cy; P.moveT = 1;
+    if (G.floor === 1 || (G.floor > 5 && G.floor % 5 === 1)) placeNpc(start);
 
     if (bossFloor) {
       const arena = rooms[1], bx = arena.x + 13, by = arena.cy - 1;
@@ -915,6 +976,7 @@
     }
 
     seen = new Uint8Array(MW * MH);
+    if (G.npc) G.npc.greeted = false;
     G.grep = 0; G.loopCopies = 0; G.knownVisible = new Set();
     computeFOV();
     computeIntents();
@@ -1025,6 +1087,7 @@
     };
     if (!daily) unlockedPerks().forEach(p => { if (!has(p.item)) G.items.push({ id: p.item, sum: false }); });
     P = { x: 0, y: 0, px: 0, py: 0, moveT: 1, face: 1, anim: null };
+    if (typeof DLG !== 'undefined' && DLG.open) { DLG.open = false; el('dialog').hidden = true; }
     parts.length = 0; texts.length = 0; rings.length = 0;
     nextFloor();
     log(daily ? tr('l_daily', td.label) : tr('l_start'), 'sys');
@@ -1037,7 +1100,7 @@
 
   function act(k, a) {
     if (!G.started || G.over) return;
-    if (G.frozen > 0) return;
+    if (G.frozen > 0 || DLG.open) return;
     if (busy()) { G.queue = { k, a }; return; }
     let r = false;
     if (k === 'move') r = tryMove(a[0], a[1]);
@@ -1056,12 +1119,14 @@
     if (!isFloor(nx, ny)) return false;
     const e = entAt(nx, ny);
     if (e) { playerAttack(e, dx, dy); return true; }
+    if (npcAt(nx, ny)) { openDialog(); return false; }
     const al = allyAt(nx, ny);
     if (al) { al.px = al.x; al.py = al.y; al.x = P.x; al.y = P.y; al.moveT = 0; }
     P.px = P.x; P.py = P.y; P.x = nx; P.y = ny; P.moveT = 0;
     sfx('step');
     pickup();
     if (stairs && P.x === stairs.x && P.y === stairs.y) { descend(); return 'descend'; }
+    if (G.npc && !G.npc.greeted && manh(P, G.npc) === 1) openDialog();
     return true;
   }
 
@@ -1472,6 +1537,110 @@
     }
   }
 
+
+  // ---------- The Maintainer ----------
+  function placeNpc(r) {
+    const cands = [];
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
+      const d = Math.abs(x - P.x) + Math.abs(y - P.y);
+      if (d >= 2 && d <= 3 && isFloor(x, y)) cands.push([x, y]);
+    }
+    if (!cands.length) return;
+    const [x, y] = pick(cands);
+    G.npc = { x, y, greeted: false };
+  }
+  let npcDeck = [];
+  function npcLine() {
+    const lines = tr('npcLines');
+    if (!npcDeck.length) npcDeck = lines.map((_, i) => i).sort(() => Math.random() - 0.5);
+    return lines[npcDeck.pop()];
+  }
+  const DLG = { open: false, text: '', shown: 0, t: 0 };
+  function openDialog() {
+    if (!G.npc || DLG.open) return;
+    G.npc.greeted = true;
+    held.length = 0; G.queue = null;
+    DLG.open = true; DLG.text = npcLine(); DLG.shown = 0; DLG.t = 0;
+    el('hint').hidden = true;
+    el('dlg-say').textContent = '';
+    el('dialog').hidden = false;
+    sfx('tool');
+    el('dlg-close').focus({ preventScroll: true });
+  }
+  function closeDialog() {
+    if (!DLG.open) return;
+    if (DLG.shown < DLG.text.length) { DLG.shown = DLG.text.length; el('dlg-say').textContent = DLG.text; return; }
+    DLG.open = false;
+    el('dialog').hidden = true;
+    cv.focus && document.activeElement && document.activeElement.blur();
+  }
+  function updateDialog(dt) {
+    if (!DLG.open) return;
+    DLG.t += dt;
+    if (DLG.shown < DLG.text.length) {
+      const before = DLG.shown;
+      DLG.shown = Math.min(DLG.text.length, Math.floor(DLG.t * 45));
+      if (DLG.shown !== before) {
+        el('dlg-say').textContent = DLG.text.slice(0, DLG.shown);
+        if (DLG.shown % 3 === 0 && DLG.text[DLG.shown - 1] !== ' ') tone(420 + Math.random() * 60, 380, 0.03, 'square', 0.012);
+      }
+    }
+    drawPortrait();
+  }
+  const pc = el('portrait').getContext('2d');
+  function drawPortrait() {
+    const f = (c, x, y, w, h) => { pc.fillStyle = c; pc.fillRect(x, y, w, h); };
+    pc.clearRect(0, 0, 32, 32);
+    f('#1f2830', 0, 0, 32, 32);
+    f('#36424f', 7, 3, 18, 7); f('#36424f', 5, 8, 4, 16); f('#36424f', 23, 8, 4, 16);
+    f('#b8b2aa', 9, 5, 14, 3);
+    f('#d9a57e', 9, 8, 14, 12);
+    f('#b8b2aa', 9, 8, 2, 3); f('#b8b2aa', 21, 8, 2, 3);
+    f('#1c1a18', 10, 11, 5, 3); f('#1c1a18', 17, 11, 5, 3); f('#1c1a18', 15, 12, 2, 1);
+    f('#9fc4d8', 11, 12, 3, 1); f('#9fc4d8', 18, 12, 3, 1);
+    const blink = (T % 4) < 0.12;
+    if (!blink) { f('#1c1a18', 12, 12, 1, 1); f('#1c1a18', 19, 12, 1, 1); }
+    f('#b8b2aa', 9, 16, 14, 6); f('#b8b2aa', 10, 22, 12, 2); f('#b8b2aa', 12, 24, 8, 1);
+    const talking = DLG.open && DLG.shown < DLG.text.length && Math.floor(T * 10) % 2;
+    f('#6b4a3a', 14, 18, 4, talking ? 2 : 1);
+    f('#4b5a6a', 3, 24, 26, 8); f('#36424f', 9, 24, 14, 2);
+    f('#cfc8bf', 13, 26, 1, 4); f('#cfc8bf', 18, 26, 1, 4);
+    f('#d77757', 23, 25, 6, 6); f('#d77757', 29, 26, 1, 3); f('#a85a40', 23, 25, 6, 1);
+    for (let i = 0; i < 3; i++) {
+      const k = (T * 0.8 + i / 3) % 1;
+      pc.globalAlpha = 1 - k;
+      f('#cfc8bf', 25 + Math.round(Math.sin((k + i) * 6) * 1.5), 23 - Math.round(k * 8), 1, 1);
+    }
+    pc.globalAlpha = 1;
+  }
+  function drawMaintainer() {
+    const n = G.npc;
+    if (!n || !seen[idx(n.x, n.y)]) return;
+    const cx = wx(n.x), cy = wy(n.y);
+    const face = P.x < n.x ? -1 : 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(cx - 5, cy, 11, 1);
+    ctx.fillStyle = '#2a2622'; ctx.fillRect(cx - 3, cy - 4, 2, 4); ctx.fillRect(cx + 1, cy - 4, 2, 4);
+    ctx.fillStyle = '#4b5a6a'; ctx.fillRect(cx - 4, cy - 11, 9, 7);
+    ctx.fillStyle = '#36424f'; ctx.fillRect(cx - 4, cy - 19, 9, 8);
+    ctx.fillStyle = '#d9a57e'; ctx.fillRect(cx - 3, cy - 17, 7, 5);
+    ctx.fillStyle = '#b8b2aa'; ctx.fillRect(cx - 3, cy - 18, 7, 1); ctx.fillRect(cx - 3, cy - 13, 7, 2); ctx.fillRect(cx - 2, cy - 11, 5, 1);
+    ctx.fillStyle = '#1c1a18'; ctx.fillRect(cx - 3, cy - 16, 3, 1); ctx.fillRect(cx + 1, cy - 16, 3, 1);
+    ctx.fillStyle = '#cfc8bf'; ctx.fillRect(cx - 1, cy - 10, 1, 2); ctx.fillRect(cx + 1, cy - 10, 1, 2);
+    const mx = cx + face * 6 - (face < 0 ? 2 : 0);
+    ctx.fillStyle = COL.clawd; ctx.fillRect(mx, cy - 9, 3, 3); ctx.fillRect(mx + (face > 0 ? 3 : -1), cy - 8, 1, 1);
+    const k = (T * 0.9) % 1;
+    ctx.globalAlpha = 1 - k; ctx.fillStyle = '#cfc8bf';
+    ctx.fillRect(mx + 1 + Math.round(Math.sin(k * 6)), cy - 11 - Math.round(k * 5), 1, 1);
+    ctx.globalAlpha = 1;
+    if (!n.greeted) {
+      const bob = Math.floor(T * 2) % 2;
+      ctx.fillStyle = '#efe6dc'; ctx.fillRect(cx - 4, cy - 29 - bob, 9, 6); ctx.fillRect(cx - 1, cy - 23 - bob, 2, 1);
+      ctx.fillStyle = '#1c1a18';
+      const dots = Math.floor(T * 3) % 4;
+      for (let i = 0; i < Math.min(dots, 3); i++) ctx.fillRect(cx - 2 + i * 2, cy - 26 - bob, 1, 1);
+    }
+  }
+
   // ---------- Clawd sprite ----------
   function basePose() {
     return { bodyDy: 0, eye: 2, look: 0, armL: [0, 0], armR: [0, 0], legs: [0, 0, 0, 0], ox: 0, oy: 0, sx: 1, sy: 1, tint: null, alpha: 1 };
@@ -1577,6 +1746,7 @@
   function update(dt) {
     T += dt;
     if (!G) return;
+    updateDialog(dt);
     G.shake = Math.max(0, G.shake - dt);
     if (G.hitstop > 0) { G.hitstop -= dt; return; }
     P.moveT = Math.min(1, P.moveT + dt / 0.11);
@@ -1936,6 +2106,7 @@
       if (vis[idx(e.x, e.y)] || G.grep > 0) { ctx.fillStyle = COL.noise; ctx.fillRect(x0 + e.x, y0 + e.y, 1, 1); }
     }
     for (const a of allies) { ctx.fillStyle = COL.ally; ctx.fillRect(x0 + a.x, y0 + a.y, 1, 1); }
+    if (G.npc && seen[idx(G.npc.x, G.npc.y)]) { ctx.fillStyle = '#9fc4d8'; ctx.fillRect(x0 + G.npc.x, y0 + G.npc.y, 1, 1); }
     ctx.fillStyle = Math.floor(T * 3) % 2 ? COL.white : COL.clawd;
     ctx.fillRect(x0 + P.x - 1, y0 + P.y - 1, 3, 3);
     ctx.globalAlpha = 1;
@@ -1989,6 +2160,7 @@
         ctx.globalAlpha = 1;
       }
     }
+    drawMaintainer();
     for (const a of allies) drawAlly(a);
     drawPlayer();
     drawRings();
@@ -2217,6 +2389,11 @@
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     audioOn();
+    if (DLG.open) {
+      if (['Escape', 'Enter', 'Space', 'KeyE'].includes(e.code)) { e.preventDefault(); if (!e.repeat) closeDialog(); }
+      else if (MOVES[e.code]) e.preventDefault();
+      return;
+    }
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyN') { toggleMusic(); return; }
     if (e.code === 'KeyT') { cycleTrack(); return; }
@@ -2265,6 +2442,7 @@
   el('b-sub').addEventListener('click', () => act('sub'));
   el('b-wait').addEventListener('click', () => act('wait'));
   el('mute').addEventListener('click', toggleMute);
+  el('dlg-close').addEventListener('click', () => { closeDialog(); if (DLG.open) closeDialog(); });
   el('music').addEventListener('click', toggleMusic);
   el('track').addEventListener('click', cycleTrack);
 
@@ -2288,6 +2466,7 @@
     get G() { return G; }, get P() { return P; }, get ents() { return ents; }, get stairs() { return stairs; },
     get allies() { return allies; }, bfsFrom, idx, act, start, total,
     toFloor(n) { G.floor = n - 1; nextFloor(); hud(); }, setLang,
+    get npc() { return G.npc; }, get dialog() { return { open: DLG.open, text: DLG.text }; },
     get music() { return { track: M.track, step: M.step, ctx: actx && actx.state }; },
     musicLevel(ms) {
       return new Promise(res => {
