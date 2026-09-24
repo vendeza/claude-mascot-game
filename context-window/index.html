@@ -224,9 +224,9 @@
       <div class="dialog" id="dialog" role="dialog" aria-labelledby="dlg-who" hidden>
         <canvas id="portrait" width="32" height="32" aria-hidden="true"></canvas>
         <div>
-          <p class="who" id="dlg-who">The Maintainer</p>
+          <p class="who" id="dlg-who">The Maintainer<span id="dlg-page"></span></p>
           <p class="say" id="dlg-say"></p>
-          <div class="actions"><button type="button" id="dlg-close"><span data-i18n="close">Close</span><kbd>Esc</kbd></button></div>
+          <div class="actions"><button type="button" id="dlg-close"><span id="dlg-btn-label">Close</span><kbd id="dlg-btn-key">Esc</kbd></button></div>
         </div>
       </div>
       <div class="overlay" id="overlay">
@@ -312,7 +312,7 @@
     merge:   { name: 'Merge Conflict', hp: 1, dmg: 12, score: 20 },
     flaky:   { name: 'Flaky Test', hp: 2, dmg: 9, score: 20 },
     limiter: { name: 'Rate Limiter', hp: 2, dmg: 4, score: 25 },
-    module:  { name: 'Legacy Monolith', hp: 5, dmg: 18, score: 40 },
+    module:  { name: 'Legacy Monolith', hp: 3, dmg: 18, score: 40 },
   };
   const HP_STEP = { bug: 3, ghost: 4, loop: 4, merge: 5, flaky: 4, limiter: 5 };
   const PERKS = [
@@ -400,7 +400,7 @@
       h_ctx: 'Context is half full. <b>/compact (C)</b> squeezes noise and output, but each compaction is weaker than the last.',
       h_stairs: 'The green arrow is <b>git push</b>, the way down. Every floor adds 6k of history.',
       h_mimic: 'Hallucinations look like items and sometimes flicker. <b>Read (R)</b> dispels them in advance.',
-      h_boss: '<b>Legacy Monolith</b>. Refactor its modules one by one. When tiles turn red, back off 3 tiles.',
+      h_boss: '<b>Legacy Monolith</b>. Talk to the Maintainer first. Short version: hit it, and when the countdown hits 1, take one step back.',
       h_frozen: '<b>Rate Limiter</b> freezes you for 2 turns. Take it out first.',
       h_ally: 'The <b>Subagent</b> hunts enemies on its own. Its fights never cost you context.',
       l_start: 'Session started. Find git push, the stairs down.',
@@ -442,7 +442,7 @@
       l_mergeBack: 'Merge Conflict came back',
       l_frozen: 'Rate Limiter: 429, you skip 2 turns',
       l_slamMiss: 'The deploy missed. Monolith is exposed.',
-      l_slamWarn: 'Monolith is preparing a deploy: get off the red tiles!',
+      l_slamWarn: 'Monolith is preparing a deploy: step off the red tiles by the count of 1!',
       l_techDebt: 'Monolith released tech debt: Bug',
       c_floor: n => `Floor ${n}`,
       unknown: 'an unknown source', noiseSrc: 'noise',
@@ -458,7 +458,15 @@
       dailyNoCommits: 'The daily run doesn\u2019t add commits.',
       earned: (e, t) => `+${e} commits. Total: <b>${t}</b>.`,
       unlocked: l => `Unlocked: ${l}`,
-      close: 'Close',
+      close: 'Close', next: 'Next',
+      bossLines: [
+        'That\u2019s Legacy Monolith. Nobody remembers who wrote it, and everyone is scared to touch it. Here\u2019s how to refactor it.',
+        'Its body is 4 modules, the 4 big squares. Step into a module to hit it. Each one breaks separately; the bar at the top shows what\u2019s left.',
+        'It moves in a 6-turn rhythm. For 3 turns it\u2019s busy and harmless: walk up and hit it.',
+        'Then the tiles touching it turn red and a countdown appears: 2\u2026 1\u2026 On zero it deploys and hits every red tile. On 2 you can still land a hit; on 1, take one step back.',
+        'After the deploy, step back in and hit again. Watch for Bugs: every other deploy it releases some tech debt. Fix them fast.',
+        'Bash hits every tile around you, so standing right beside its side hits 2 modules at once. If a Subagent is lying around here, take it. Good luck.',
+      ],
       npcLines: [
         'Context isn\u2019t memory. It\u2019s attention. Spend it on what matters.',
         'Every bug you fix is one someone else never has to meet.',
@@ -503,7 +511,7 @@
       h_ctx: 'Контекст заполнен наполовину. <b>/compact (C)</b> сжимает шум и вывод, но каждая следующая компакция слабее.',
       h_stairs: 'Зелёная стрелка — <b>git push</b>, спуск на следующий этаж. Каждый этаж добавляет 6k истории.',
       h_mimic: 'Галлюцинации выглядят как предметы и иногда мерцают. <b>Read (R)</b> рассеивает их заранее.',
-      h_boss: '<b>Legacy Monolith</b>. Рефактори модули по одному. Когда клетки краснеют, отойди на 3 клетки.',
+      h_boss: '<b>Legacy Monolith</b>. Сначала поговори с Maintainer. Коротко: бей, а когда отсчёт дойдёт до 1, шагни назад.',
       h_frozen: '<b>Rate Limiter</b> замораживает на 2 хода. Добивай его первым.',
       h_ally: '<b>Subagent</b> сам ищет врагов. Его драки не тратят твой контекст.',
       l_start: 'Сессия началась. Найди git push — лестницу вниз.',
@@ -545,7 +553,7 @@
       l_mergeBack: 'Merge Conflict вернулся',
       l_frozen: 'Rate Limiter: 429, пропускаешь 2 хода',
       l_slamMiss: 'Деплой мимо. Monolith уязвим.',
-      l_slamWarn: 'Monolith готовит деплой: уйди с красных клеток!',
+      l_slamWarn: 'Monolith готовит деплой: уйди с красных клеток до отсчёта 1!',
       l_techDebt: 'Monolith выпустил техдолг: Bug',
       c_floor: n => `Этаж ${n}`,
       unknown: 'неизвестный источник', noiseSrc: 'шум',
@@ -561,7 +569,15 @@
       dailyNoCommits: 'Ежедневный забег не пополняет коммиты.',
       earned: (e, t) => `+${e} коммитов. Всего: <b>${t}</b>.`,
       unlocked: l => `Открыто: ${l}`,
-      close: 'Закрыть',
+      close: 'Закрыть', next: 'Далее',
+      bossLines: [
+        'Это Legacy Monolith. Никто не помнит, кто его написал, и все боятся его трогать. Слушай, как его отрефакторить.',
+        'Его тело — 4 модуля, 4 больших квадрата. Шагни в модуль, чтобы ударить. Каждый ломается отдельно, полоска сверху показывает, сколько осталось.',
+        'Он живёт в ритме из 6 ходов. 3 хода он занят и безопасен: подходи и бей.',
+        'Потом клетки вплотную к нему краснеют и появляется отсчёт: 2… 1… На нуле он деплоит и бьёт по всем красным клеткам. На «2» ещё можно ударить, на «1» сделай шаг назад.',
+        'После деплоя шагни обратно и бей снова. Следи за багами: через раз перед деплоем он выпускает техдолг. Чини их сразу.',
+        'Bash бьёт по всем клеткам вокруг тебя, так что если встать вплотную к его боку, заденешь сразу 2 модуля. Если тут лежит Subagent — возьми его. Удачи.',
+      ],
       npcLines: [
         'Контекст — это не память. Это внимание. Трать его на то, что важно.',
         'Каждый баг, который ты починил, кто-то другой уже никогда не встретит.',
@@ -926,7 +942,8 @@
     if (bossFloor) genBossMap(); else genMap();
     const start = rooms[0];
     P.x = P.px = start.cx; P.y = P.py = start.cy; P.moveT = 1;
-    if (G.floor === 1 || (G.floor > 5 && G.floor % 5 === 1)) placeNpc(start);
+    if (bossFloor) placeNpc(start, 'boss');
+    else if (G.floor === 1 || (G.floor > 5 && G.floor % 5 === 1)) placeNpc(start, 'wisdom');
 
     if (bossFloor) {
       const arena = rooms[1], bx = arena.x + 13, by = arena.cy - 1;
@@ -1504,17 +1521,20 @@
   }
 
   function inSlam(x, y) {
-    return ents.some(m => m.type === 'module' && Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= 2);
+    return ents.some(m => m.type === 'module' && Math.max(Math.abs(x - m.x), Math.abs(y - m.y)) <= 1);
   }
 
+  // 6-turn rhythm: 3 safe turns to hit it, then 2 warning turns (red tiles + countdown), then the deploy
+  // hits every tile touching the Monolith, so one step back is enough
   function bossTurn() {
     const B = G.boss;
     if (!B || B.dead || !B.awake) return;
     const mods = ents.filter(e => e.type === 'module');
     if (!mods.length) return;
     B.timer++;
-    if (B.slam) {
-      B.slam = false;
+    const ph = B.timer % 6;
+    if (ph === 0) {
+      B.slam = false; B.count = 0;
       shake(0.4); sfx('slam');
       mods.forEach(m => rings.push({ x: wx(m.x), y: wy(m.y) - 8, r: 4, max: 60, life: 1, c: COL.noise }));
       if (inSlam(P.x, P.y)) hurt(scaled(22), 'Legacy Monolith');
@@ -1522,31 +1542,26 @@
       allies.forEach(a => { if (inSlam(a.x, a.y)) a.life = Math.min(a.life, 1); });
       return;
     }
-    if (B.timer % 4 === 0) {
-      B.slam = true;
+    if (ph === 4) {
+      B.slam = true; B.count = 2;
       G.interrupt = true;
       sfx('warn');
       log(tr('l_slamWarn'), 'hit');
-      return;
-    }
-    const adj = mods.find(m => manh(m, P) === 1);
-    if (adj) {
-      adj.atkT = 0; adj.adx = P.x - adj.x; adj.ady = P.y - adj.y;
-      hurt(scaled(FOES.module.dmg), 'Legacy Monolith');
-      return;
-    }
-    if (B.timer % 5 === 0 && ents.filter(e => e.type === 'bug').length < 6) {
-      const m = pick(mods), spot = adjacentFree(m.x, m.y);
-      if (spot) {
-        ents.push(makeEnt('bug', spot[0], spot[1], { awake: true, px: m.x, py: m.y, moveT: 0 }));
-        log(tr('l_techDebt'), 'hit');
+      B.deploys = (B.deploys || 0) + 1;
+      if (B.deploys % 2 === 1 && ents.filter(e => e.type === 'bug').length < 2) {
+        const m = pick(mods), spot = adjacentFree(m.x, m.y);
+        if (spot) {
+          ents.push(makeEnt('bug', spot[0], spot[1], { awake: true, px: m.x, py: m.y, moveT: 0 }));
+          log(tr('l_techDebt'), 'hit');
+        }
       }
+      return;
     }
+    if (ph === 5) { B.count = 1; sfx('warn'); }
   }
 
-
   // ---------- The Maintainer ----------
-  function placeNpc(r) {
+  function placeNpc(r, mode) {
     const cands = [];
     for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
       const d = Math.abs(x - P.x) + Math.abs(y - P.y);
@@ -1554,7 +1569,7 @@
     }
     if (!cands.length) return;
     const [x, y] = pick(cands);
-    G.npc = { x, y, greeted: false };
+    G.npc = { x, y, greeted: false, mode };
   }
   let npcDeck = [];
   function npcLine() {
@@ -1562,24 +1577,40 @@
     if (!npcDeck.length) npcDeck = lines.map((_, i) => i).sort(() => Math.random() - 0.5);
     return lines[npcDeck.pop()];
   }
-  const DLG = { open: false, text: '', shown: 0, t: 0 };
+  const DLG = { open: false, text: '', shown: 0, t: 0, pages: [], page: 0 };
+  function showPage() {
+    DLG.text = DLG.pages[DLG.page]; DLG.shown = 0; DLG.t = 0;
+    el('dlg-say').textContent = '';
+    const last = DLG.page >= DLG.pages.length - 1;
+    el('dlg-btn-label').textContent = last ? tr('close') : tr('next');
+    el('dlg-btn-key').textContent = last ? 'Esc' : 'Enter';
+    el('dlg-page').textContent = DLG.pages.length > 1 ? ` · ${DLG.page + 1}/${DLG.pages.length}` : '';
+  }
   function openDialog() {
     if (!G.npc || DLG.open) return;
     G.npc.greeted = true;
     held.length = 0; G.queue = null;
-    DLG.open = true; DLG.text = npcLine(); DLG.shown = 0; DLG.t = 0;
+    DLG.open = true;
+    DLG.pages = G.npc.mode === 'boss' ? tr('bossLines') : [npcLine()];
+    DLG.page = 0;
+    showPage();
     el('hint').hidden = true;
-    el('dlg-say').textContent = '';
     el('dialog').hidden = false;
     sfx('tool');
     el('dlg-close').focus({ preventScroll: true });
   }
-  function closeDialog() {
+  // Enter / Space / click: finish typing, then next page, then close
+  function advanceDialog() {
     if (!DLG.open) return;
     if (DLG.shown < DLG.text.length) { DLG.shown = DLG.text.length; el('dlg-say').textContent = DLG.text; return; }
+    if (DLG.page < DLG.pages.length - 1) { DLG.page++; showPage(); return; }
+    closeDialog();
+  }
+  function closeDialog() {
+    if (!DLG.open) return;
     DLG.open = false;
     el('dialog').hidden = true;
-    cv.focus && document.activeElement && document.activeElement.blur();
+    if (document.activeElement) document.activeElement.blur();
   }
   function updateDialog(dt) {
     if (!DLG.open) return;
@@ -1639,7 +1670,11 @@
     ctx.globalAlpha = 1 - k; ctx.fillStyle = '#cfc8bf';
     ctx.fillRect(mx + 1 + Math.round(Math.sin(k * 6)), cy - 11 - Math.round(k * 5), 1, 1);
     ctx.globalAlpha = 1;
-    if (!n.greeted) {
+    if (!n.greeted && n.mode === 'boss') {
+      const bob = Math.floor(T * 2) % 2;
+      ctx.fillStyle = COL.tool; ctx.fillRect(cx - 3, cy - 31 - bob, 7, 8); ctx.fillRect(cx - 1, cy - 23 - bob, 2, 1);
+      ctx.fillStyle = '#1c1a18'; ctx.fillRect(cx, cy - 30 - bob, 1, 4); ctx.fillRect(cx, cy - 25 - bob, 1, 1);
+    } else if (!n.greeted) {
       const bob = Math.floor(T * 2) % 2;
       ctx.fillStyle = '#efe6dc'; ctx.fillRect(cx - 4, cy - 29 - bob, 9, 6); ctx.fillRect(cx - 1, cy - 23 - bob, 2, 1);
       ctx.fillStyle = '#1c1a18';
@@ -2069,8 +2104,14 @@
     if (!B || !B.slam || B.dead) return;
     const a = 0.25 + 0.2 * Math.sin(T * 12);
     ctx.fillStyle = `rgba(224,96,90,${a})`;
-    for (let y = B.by - 3; y <= B.by + 4; y++) for (let x = B.bx - 3; x <= B.bx + 4; x++) {
+    for (let y = B.by - 2; y <= B.by + 3; y++) for (let x = B.bx - 2; x <= B.bx + 3; x++) {
       if (isFloor(x, y) && inSlam(x, y) && !entAt(x, y)) ctx.fillRect(x * TS + 1, y * TS + 1, TS - 2, TS - 2);
+    }
+    if (B.count) {
+      ctx.font = '12px Silkscreen, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      const cx = (B.bx + 1) * TS, cy = B.by * TS - 6 + Math.round(Math.sin(T * 10));
+      ctx.fillStyle = COL.void; ctx.fillText(String(B.count), cx + 1, cy + 1);
+      ctx.fillStyle = COL.noise; ctx.fillText(String(B.count), cx, cy);
     }
   }
   function drawRings() {
@@ -2420,7 +2461,8 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     audioOn();
     if (DLG.open) {
-      if (['Escape', 'Enter', 'Space', 'KeyE'].includes(e.code)) { e.preventDefault(); if (!e.repeat) closeDialog(); }
+      if (e.code === 'Escape') { e.preventDefault(); closeDialog(); }
+      else if (['Enter', 'Space', 'KeyE'].includes(e.code)) { e.preventDefault(); if (!e.repeat) advanceDialog(); }
       else if (MOVES[e.code]) e.preventDefault();
       return;
     }
@@ -2472,7 +2514,7 @@
   el('b-sub').addEventListener('click', () => act('sub'));
   el('b-wait').addEventListener('click', () => act('wait'));
   el('mute').addEventListener('click', toggleMute);
-  el('dlg-close').addEventListener('click', () => { closeDialog(); if (DLG.open) closeDialog(); });
+  el('dlg-close').addEventListener('click', advanceDialog);
   el('music').addEventListener('click', toggleMusic);
   el('track').addEventListener('click', cycleTrack);
 

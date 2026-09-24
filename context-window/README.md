@@ -8,7 +8,7 @@ A fan-made turn-based browser roguelike. Clawd descends through repository floor
 - Enemies: Bug, Hallucination, Infinite Loop, Merge Conflict, Flaky Test, Rate Limiter. Every 5th floor holds the boss Legacy Monolith.
 - A color theme per two floors (Monorepo, Server Room, Hotfix Hell, Green Build, Neon Nightly).
 - Enemy intents, run interruption, minimap, synthesized sound effects (M) and chiptune music (N toggles, T picks a track): Night Shift in menus; floors rotate Ship It, Merge Rush and Legacy Monolith every two floors, and boss floors always play Legacy Monolith. First-run hints.
-- The Maintainer, a fictional mentor NPC, waits in the first room (and after every boss) with one of 15 lines of advice.
+- The Maintainer, a fictional mentor NPC, waits in the first room (and after every boss) with one of 15 lines of advice, and on boss floors walks you through the Monolith fight.
 - Commits from each run unlock starting items. The daily run uses the same seed for everyone.
 
 Single `index.html`, no dependencies. Open it in a browser to play.
