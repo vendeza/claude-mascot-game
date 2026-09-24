@@ -557,6 +557,7 @@
         src.connect(actx.destination); src.start(0);
         unlocked = true;
       } catch (e) {}
+      if (musicOn && inMenu() && !M.track) musicPlay(menuTrack());
     }
   }
   function tone(f0, f1, dur, type, vol, delay) {
@@ -638,12 +639,13 @@
   };
   const TRACK_PREFS = ['auto', 'calm', 'upbeat', 'battle', 'boss'];
   let trackPref = TRACK_PREFS.includes(store.get('cw-track')) ? store.get('cw-track') : 'auto';
-  const REGULAR = ['calm', 'upbeat', 'battle'];
-  const regularTrack = floor => REGULAR[(Math.max(1, floor) - 1) % REGULAR.length];
-  function trackFor(floor, bossAlive) {
+  // Auto: Ship It on floors 1-2, Merge Rush on 3-4, Legacy Monolith from 5 on; Night Shift in menus
+  function trackFor(floor) {
     if (trackPref !== 'auto') return trackPref;
-    return bossAlive ? 'boss' : regularTrack(floor);
+    return floor <= 2 ? 'upbeat' : floor <= 4 ? 'battle' : 'boss';
   }
+  const menuTrack = () => trackPref === 'auto' ? 'calm' : trackPref;
+  const inMenu = () => !overlay.hidden;
   const mfreq = m => 440 * Math.pow(2, (m - 69) / 12);
   const M = { track: null, step: 0, next: 0, timer: null, bus: null };
   function mnote(midi, t, dur, type, vol) {
@@ -696,7 +698,7 @@
     store.set('cw-track', trackPref);
     audioOn();
     const inGame = G && G.started && !G.over;
-    const want = inGame ? trackFor(G.floor, G.boss && !G.boss.dead) : (trackPref === 'auto' ? 'calm' : trackPref);
+    const want = inGame ? trackFor(G.floor) : menuTrack();
     if (musicOn) musicPlay(want); else M.want = want;
     syncMusicButtons();
   }
@@ -918,7 +920,7 @@
     computeIntents();
     if (G.floor > 1) log(bossFloor ? tr('l_floorBoss', G.floor) : tr('l_floor', G.floor), 'sys');
     if (bossFloor) hint('boss');
-    if (G.started) musicPlay(trackFor(G.floor, bossFloor));
+    if (G.started) musicPlay(trackFor(G.floor));
   }
 
   // ---------- FOV ----------
@@ -1132,7 +1134,6 @@
     log(tr('l_module', 4 - left), 'ok');
     if (left === 0) {
       B.dead = true; B.slam = false;
-      musicPlay(trackFor(G.floor, false));
       stairs = { x: B.bx, y: B.by };
       G.score += 300; G.stats.bosses++;
       shake(0.5); sfx('boss');
@@ -2125,7 +2126,7 @@
     newGame(mode || 'normal');
     G.started = true;
     overlay.hidden = true;
-    musicPlay(trackFor(G.floor, G.floor % 5 === 0));
+    musicPlay(trackFor(G.floor));
     hud();
   }
   function showDeath() {
@@ -2153,6 +2154,7 @@
         <button class="secondary" id="btn-daily" type="button">${tr('btnDaily', today().label)}</button>
       </div>`;
     overlay.hidden = false;
+    if (musicOn) musicPlay(menuTrack());
     wireButtons();
     hud();
   }
@@ -2198,7 +2200,7 @@
   function toggleMusic() {
     musicOn = !musicOn;
     store.set('cw-music', musicOn ? '1' : '0');
-    if (musicOn) { audioOn(); musicPlay(M.want || (G && G.started ? trackFor(G.floor, G.boss && !G.boss.dead) : 'calm')); }
+    if (musicOn) { audioOn(); musicPlay(G && G.started && !G.over ? trackFor(G.floor) : menuTrack()); }
     else { const w = M.track || M.want; musicStop(); M.want = w; }
     syncMusicButtons();
   }
