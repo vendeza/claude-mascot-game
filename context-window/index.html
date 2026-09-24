@@ -725,7 +725,7 @@
     if (M.track === track && M.timer) return;
     musicStop();
     M.want = track; M.track = track; M.step = 0; M.next = actx.currentTime + 0.1;
-    M.bus = actx.createGain(); M.bus.gain.value = 1.0;
+    M.bus = actx.createGain(); M.bus.gain.value = 0.7;
     const comp = actx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
     M.bus.connect(comp).connect(actx.destination);
