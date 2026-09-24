@@ -89,6 +89,36 @@
     border: 1px solid #5a7385; border-radius: 6px;
   }
   .dialog[hidden] { display: none; }
+  .menu {
+    position: absolute; inset: 0; z-index: 3;
+    display: grid; place-items: center; padding: 16px;
+    background: rgba(13, 11, 10, 0.9);
+    overflow-y: auto;
+  }
+  .menu[hidden] { display: none; }
+  @media (max-width: 820px) {
+    .menu { position: fixed; z-index: 20; padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)); }
+  }
+  .menu-card { width: min(100%, 400px); display: grid; gap: 14px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .menu-card h2 { margin: 0; font-family: "Silkscreen", monospace; font-weight: 400; font-size: 22px; color: var(--clawd); }
+  .set { display: grid; gap: 6px; }
+  .set-label { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button, .menu-card .opt {
+    font: 13px "IBM Plex Mono", monospace; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px;
+    padding: 6px 10px; cursor: pointer; min-height: 36px;
+  }
+  .seg button[aria-pressed="true"] { border-color: var(--clawd); color: var(--clawd); }
+  .vol { display: grid; grid-template-columns: auto 1fr 3.5em; gap: 10px; align-items: center; }
+  .vol output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  .vol button { min-width: 5.5em; }
+  .vol button[aria-pressed="false"] { color: var(--muted); }
+  .vol input[type=range] { width: 100%; accent-color: var(--clawd); }
+  .menu-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .menu-card button:focus-visible, .menu-card input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .danger { color: var(--noise) !important; border-color: #6a3a36 !important; }
+  .menu-note { font-size: 12px; color: var(--muted); margin: 0; }
   #portrait { width: 72px; height: 72px; image-rendering: pixelated; background: #1f2830; border-radius: 4px; }
   .dialog .who { font-family: "Silkscreen", monospace; font-size: 14px; color: #9fc4d8; margin: 0 0 4px; }
   .dialog .say { margin: 0; min-height: 3em; font-size: 14px; line-height: 1.45; color: var(--text); }
@@ -195,9 +225,7 @@
       <span><span data-i18n="floor">Floor</span> <b id="floor">1</b></span>
       <span><span data-i18n="score">Score</span> <b id="score">0</b></span>
       <span><span data-i18n="best">Best</span> <b id="best">0</b></span>
-      <button class="link" id="mute" type="button">Sound: on</button>
-      <button class="link" id="music" type="button">Music: on</button>
-      <button class="link" id="track" type="button">Track: Auto</button>
+      <button class="link" id="menu-btn" type="button" aria-haspopup="dialog">⚙ <span data-i18n="menu">Menu</span></button>
     </div>
   </div>
 
@@ -228,6 +256,9 @@
           <p class="say" id="dlg-say"></p>
           <div class="actions"><button type="button" id="dlg-close"><span id="dlg-btn-label">Close</span><kbd id="dlg-btn-key">Esc</kbd></button></div>
         </div>
+      </div>
+      <div class="menu" id="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title" hidden>
+        <div class="menu-card" id="menu-card"></div>
       </div>
       <div class="overlay" id="overlay">
         <div class="card" id="card"></div>
@@ -376,13 +407,16 @@
   const I18N = {
     en: {
       floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off', musicOn: 'Music: on', musicOff: 'Music: off', track: 'Track', trackAuto: 'Auto',
+      menu: 'Menu', settings: 'Settings', sfxVol: 'Sound effects', musVol: 'Music', on: 'On', off: 'Off',
+      resume: 'Resume', back: 'Back', restart: 'New session', restartConfirm: 'Lose progress? Click again',
+      menuKeys: 'Esc or P opens and closes this menu. M toggles sound, N music, T switches the track.',
       ctx: 'Context', ctxAria: 'Context window', gameAria: 'Game board', ready: 'ready',
       inTurns: n => `in ${n} ${n === 1 ? 'turn' : 'turns'}`, eff: p => `· ${p}% compression`,
       grepLeft: n => `Grep ${n} more`, allyLeft: n => `subagent ${n}`, frozen: '429: frozen',
       lgSys: 'system prompt', lgItems: 'items', lgOut: 'tool output', lgNoise: 'damage noise',
       hActions: 'Actions', hLog: 'Session log', hInv: 'In context', wait: 'Wait a turn', space: 'Space', padWait: 'wait',
       waitAria: 'Wait', up: 'Up', left: 'Left', right: 'Right', down: 'Down',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> sound, <kbd>N</kbd> music, <kbd>T</kbd> track.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>Esc</kbd> menu.',
       footer: 'Fan game. Not affiliated with or made by Anthropic.',
       daily: d => `Daily ${d}`, invEmpty: 'Empty. Items are scattered across floors.', forget: 'Forget',
       forgetTitle: n => `Remove ${n} from context`, summary: 'summary', notFound: n => `${n} not found yet`, perk: n => `Start with ${n}`,
@@ -487,13 +521,16 @@
     },
     ru: {
       floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл', track: 'Трек', trackAuto: 'Авто',
+      menu: 'Меню', settings: 'Настройки', sfxVol: 'Звуковые эффекты', musVol: 'Музыка', on: 'Вкл', off: 'Выкл',
+      resume: 'Продолжить', back: 'Назад', restart: 'Новая сессия', restartConfirm: 'Потерять прогресс? Нажми ещё раз',
+      menuKeys: 'Esc или P открывает и закрывает меню. M — звук, N — музыка, T — сменить трек.',
       ctx: 'Контекст', ctxAria: 'Контекстное окно', gameAria: 'Игровое поле', ready: 'готова',
       inTurns: n => `через ${n} ${plural(n, 'ход', 'хода', 'ходов')}`, eff: p => `· сжатие ${p}%`,
       grepLeft: n => `Grep ещё ${n}`, allyLeft: n => `сабагент ${n}`, frozen: '429: заморожен',
       lgSys: 'системный промпт', lgItems: 'предметы', lgOut: 'вывод инструментов', lgNoise: 'шум от урона',
       hActions: 'Действия', hLog: 'Лог сессии', hInv: 'В контексте', wait: 'Ждать ход', space: 'Пробел', padWait: 'ждать',
       waitAria: 'Ждать', up: 'Вверх', left: 'Влево', right: 'Вправо', down: 'Вниз',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук, <kbd>N</kbd> — музыка, <kbd>T</kbd> — трек.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>Esc</kbd> — меню.',
       footer: 'Фанатская игра. Не связана с Anthropic и не является её продуктом.',
       daily: d => `Ежедневный ${d}`, invEmpty: 'Пусто. Предметы лежат на этажах.', forget: 'Забыть',
       forgetTitle: n => `Убрать ${n} из контекста`, summary: 'саммари', notFound: n => `${n} ещё не найден`, perk: n => `Старт с ${n}`,
@@ -635,27 +672,31 @@
       if (musicOn && inMenu() && !M.track) musicPlay(menuTrack());
     }
   }
+  let sfxVol = clamp(parseInt(store.get('cw-sfxvol') || '100', 10), 0, 100) / 100;
+  let musVol = clamp(parseInt(store.get('cw-musvol') || '100', 10), 0, 100) / 100;
+  if (isNaN(sfxVol)) sfxVol = 1;
+  if (isNaN(musVol)) musVol = 1;
   function tone(f0, f1, dur, type, vol, delay) {
-    if (muted || !actx) return;
+    if (muted || !actx || sfxVol <= 0) return;
     const t = actx.currentTime + (delay || 0);
     const o = actx.createOscillator(), g = actx.createGain();
     o.type = type || 'square';
     o.frequency.setValueAtTime(f0, t);
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    g.gain.setValueAtTime(vol || 0.05, t);
+    g.gain.setValueAtTime((vol || 0.05) * sfxVol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(actx.destination);
     o.start(t); o.stop(t + dur + 0.02);
   }
   function noise(dur, vol, delay, lp) {
-    if (muted || !actx) return;
+    if (muted || !actx || sfxVol <= 0) return;
     const t = actx.currentTime + (delay || 0);
     const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
     src.buffer = buf; f.type = 'lowpass'; f.frequency.value = lp || 1500;
-    g.gain.setValueAtTime(vol || 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.setValueAtTime((vol || 0.06) * sfxVol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f).connect(g).connect(actx.destination);
     src.start(t);
   }
@@ -809,7 +850,7 @@
     M.want = track; M.track = track; M.step = 0; M.next = actx.currentTime + 0.1;
     M.toast = { name: TRACKS[track].name, t: 0 };
     if (typeof syncMusicButtons === 'function') try { syncMusicButtons(); } catch (e) {}
-    M.bus = actx.createGain(); M.bus.gain.value = 0.7;
+    M.bus = actx.createGain(); M.bus.gain.value = 0.7 * musVol;
     const comp = actx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
     M.bus.connect(comp).connect(actx.destination);
@@ -1124,7 +1165,7 @@
 
   function act(k, a) {
     if (!G.started || G.over) return;
-    if (G.frozen > 0 || DLG.open) return;
+    if (G.frozen > 0 || DLG.open || menuOpen()) return;
     if (busy()) { G.queue = { k, a }; return; }
     let r = false;
     if (k === 'move') r = tryMove(a[0], a[1]);
@@ -1815,7 +1856,7 @@
       }
       if (G.trans.t >= 1.1) G.trans = null;
     }
-    if (G.frozen > 0 && !G.over && !G.trans && P.moveT >= 1) {
+    if (G.frozen > 0 && !G.over && !G.trans && P.moveT >= 1 && !menuOpen()) {
       G.frozenT += dt;
       if (G.frozenT > 0.4) {
         G.frozenT = 0; G.frozen--;
@@ -2289,7 +2330,6 @@
     el('b-compact').querySelector('small').textContent = G.cd ? `C · ${G.cd}` : `C · ${Math.round(compactEff() * 100)}%`;
     el('b-clear').disabled = !has('clear');
     el('b-sub').disabled = !has('subagent');
-    el('mute').textContent = muted ? tr('soundOff') : tr('soundOn');
     syncMusicButtons();
     renderInv();
   }
@@ -2329,9 +2369,7 @@
         <span>${tr('lang')}:</span>
         <button class="link" type="button" data-lang="en" aria-pressed="${LANG === 'en'}">English</button>
         <button class="link" type="button" data-lang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
-        <button class="link" type="button" id="card-mute" aria-pressed="${!muted}">${muted ? tr('soundOff') : tr('soundOn')}</button>
-        <button class="link" type="button" id="card-music" aria-pressed="${musicOn}">${musicOn ? tr('musicOn') : tr('musicOff')}</button>
-        <button class="link" type="button" id="card-track">${trackLabel()}</button>
+        <button class="link" type="button" id="card-settings">⚙ ${tr('settings')}</button>
       </div>`;
   }
   function showStart() {
@@ -2356,12 +2394,9 @@
       const again = card.querySelector(`[data-lang="${LANG}"]`);
       if (again) again.focus({ preventScroll: true });
     }));
-    const cm = el('card-mute');
-    const cmu = el('card-music');
-    if (cmu) cmu.addEventListener('click', toggleMusic);
-    const ctk = el('card-track');
-    if (ctk) ctk.addEventListener('click', cycleTrack);
-    if (cm) cm.addEventListener('click', () => { toggleMute(); cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); });
+    const cs = el('card-settings');
+    if (cs) cs.addEventListener('click', openMenu);
+    overlayMode = 'start';
     wireButtons();
   }
   function start(mode) {
@@ -2372,7 +2407,9 @@
     musicPlay(trackFor(G.floor));
     hud();
   }
+  let overlayMode = 'start';
   function showDeath() {
+    overlayMode = 'death';
     const st = G.stats;
     const daily = G.mode === 'daily';
     card.innerHTML = `
@@ -2401,6 +2438,95 @@
     wireButtons();
     hud();
   }
+
+
+  // ---------- settings menu ----------
+  const menuEl = el('menu'), menuCard = el('menu-card');
+  let menuReturnFocus = null, restartArmed = false;
+  function menuOpen() { return !menuEl.hidden; }
+  function renderMenu() {
+    const inGame = G && G.started && !G.over;
+    menuCard.innerHTML = `
+      <h2 id="menu-title">${tr('menu')}</h2>
+      <div class="set">
+        <span class="set-label">${tr('lang')}</span>
+        <div class="seg" role="group" aria-label="${tr('lang')}">
+          <button type="button" data-mlang="en" aria-pressed="${LANG === 'en'}">English</button>
+          <button type="button" data-mlang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
+        </div>
+      </div>
+      <div class="set">
+        <label class="set-label" for="m-sfx">${tr('sfxVol')}</label>
+        <div class="vol">
+          <button type="button" class="opt" id="m-sfx-on" aria-pressed="${!muted}">${muted ? tr('off') : tr('on')}</button>
+          <input type="range" id="m-sfx" min="0" max="100" step="5" value="${Math.round(sfxVol * 100)}">
+          <output id="m-sfx-val" for="m-sfx">${Math.round(sfxVol * 100)}%</output>
+        </div>
+      </div>
+      <div class="set">
+        <label class="set-label" for="m-mus">${tr('musVol')}</label>
+        <div class="vol">
+          <button type="button" class="opt" id="m-mus-on" aria-pressed="${musicOn}">${musicOn ? tr('on') : tr('off')}</button>
+          <input type="range" id="m-mus" min="0" max="100" step="5" value="${Math.round(musVol * 100)}">
+          <output id="m-mus-val" for="m-mus">${Math.round(musVol * 100)}%</output>
+        </div>
+        <button type="button" class="opt" id="m-track">${trackLabel()}</button>
+      </div>
+      <div class="menu-actions">
+        <button type="button" class="primary" id="m-resume">${inGame ? tr('resume') : tr('back')}</button>
+        ${inGame ? `<button type="button" class="opt danger" id="m-restart">${tr('restart')}</button>` : ''}
+        <button type="button" class="opt" id="m-hints">${tr('hintsReset')}</button>
+      </div>
+      <p class="menu-note">${tr('menuKeys')}</p>`;
+    menuCard.querySelectorAll('[data-mlang]').forEach(b => b.addEventListener('click', () => {
+      setLang(b.dataset.mlang);
+      if (G && !G.started) newGame('normal');
+      if (!overlay.hidden) { if (overlayMode === 'death') showDeath(); else showStart(); }
+      renderMenu();
+      const again = menuCard.querySelector(`[data-mlang="${LANG}"]`);
+      if (again) again.focus({ preventScroll: true });
+    }));
+    const sfxR = el('m-sfx'), musR = el('m-mus');
+    sfxR.addEventListener('input', () => {
+      sfxVol = sfxR.value / 100; store.set('cw-sfxvol', sfxR.value);
+      el('m-sfx-val').textContent = sfxR.value + '%';
+    });
+    sfxR.addEventListener('change', () => { audioOn(); sfx('pickup'); });
+    musR.addEventListener('input', () => {
+      musVol = musR.value / 100; store.set('cw-musvol', musR.value);
+      el('m-mus-val').textContent = musR.value + '%';
+      if (M.bus && actx) M.bus.gain.setTargetAtTime(0.7 * musVol, actx.currentTime, 0.05);
+    });
+    el('m-sfx-on').addEventListener('click', toggleMute);
+    el('m-mus-on').addEventListener('click', toggleMusic);
+    el('m-track').addEventListener('click', cycleTrack);
+    el('m-resume').addEventListener('click', closeMenu);
+    const rs = el('m-restart');
+    if (rs) rs.addEventListener('click', () => {
+      if (!restartArmed) { restartArmed = true; rs.textContent = tr('restartConfirm'); return; }
+      closeMenu();
+      start(G.mode);
+    });
+    const hb = el('m-hints');
+    hb.addEventListener('click', () => { hintsSeen = {}; store.set('cw-hints', '{}'); hb.textContent = tr('hintsOn'); hb.disabled = true; });
+  }
+  function openMenu() {
+    if (menuOpen()) return;
+    audioOn();
+    held.length = 0; if (G) G.queue = null;
+    restartArmed = false;
+    menuReturnFocus = document.activeElement;
+    renderMenu();
+    menuEl.hidden = false;
+    el('m-resume').focus({ preventScroll: true });
+  }
+  function closeMenu() {
+    if (!menuOpen()) return;
+    menuEl.hidden = true;
+    if (menuReturnFocus && document.contains(menuReturnFocus) && menuReturnFocus.id !== 'menu-btn') menuReturnFocus.focus({ preventScroll: true });
+    else if (document.activeElement) document.activeElement.blur();
+  }
+  menuEl.addEventListener('click', e => { if (e.target === menuEl) closeMenu(); });
 
   // ---------- input ----------
   const MOVES = {
@@ -2436,9 +2562,7 @@
     muted = !muted;
     store.set('cw-mute', muted ? '1' : '0');
     if (!muted) { audioOn(); sfx('pickup'); }
-    el('mute').textContent = muted ? tr('soundOff') : tr('soundOn');
-    const cm = el('card-mute');
-    if (cm) { cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); }
+    syncMusicButtons();
   }
   function toggleMusic() {
     musicOn = !musicOn;
@@ -2447,25 +2571,29 @@
     else { const w = M.track || M.want; musicStop(); M.want = w; }
     syncMusicButtons();
   }
+  // keeps the settings menu in sync with toggles made by keys (M, N, T)
   function syncMusicButtons() {
-    const t = musicOn ? tr('musicOn') : tr('musicOff');
-    el('music').textContent = t;
-    const cm = el('card-music');
-    if (cm) { cm.textContent = t; cm.setAttribute('aria-pressed', String(musicOn)); }
-    el('track').textContent = trackLabel();
-    const ct = el('card-track');
-    if (ct) ct.textContent = trackLabel();
+    if (menuEl.hidden) return;
+    const sb = el('m-sfx-on'), mb = el('m-mus-on'), tb = el('m-track');
+    if (sb) { sb.textContent = muted ? tr('off') : tr('on'); sb.setAttribute('aria-pressed', String(!muted)); }
+    if (mb) { mb.textContent = musicOn ? tr('on') : tr('off'); mb.setAttribute('aria-pressed', String(musicOn)); }
+    if (tb) tb.textContent = trackLabel();
   }
 
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     audioOn();
+    if (menuOpen()) {
+      if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); closeMenu(); }
+      return;
+    }
     if (DLG.open) {
       if (e.code === 'Escape') { e.preventDefault(); closeDialog(); }
       else if (['Enter', 'Space', 'KeyE'].includes(e.code)) { e.preventDefault(); if (!e.repeat) advanceDialog(); }
       else if (MOVES[e.code]) e.preventDefault();
       return;
     }
+    if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); openMenu(); return; }
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyN') { toggleMusic(); return; }
     if (e.code === 'KeyT') { cycleTrack(); return; }
@@ -2513,10 +2641,8 @@
   el('b-clear').addEventListener('click', () => act('clear'));
   el('b-sub').addEventListener('click', () => act('sub'));
   el('b-wait').addEventListener('click', () => act('wait'));
-  el('mute').addEventListener('click', toggleMute);
   el('dlg-close').addEventListener('click', advanceDialog);
-  el('music').addEventListener('click', toggleMusic);
-  el('track').addEventListener('click', cycleTrack);
+  el('menu-btn').addEventListener('click', openMenu);
 
   // ---------- boot ----------
   applyStatic();
