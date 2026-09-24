@@ -2671,7 +2671,7 @@
     spawn(type, x, y, extra) { const e = makeEnt(type, x, y, Object.assign({ awake: true }, extra || {})); ents.push(e); computeIntents(); return e; },
     give(id) { if (!has(id)) G.items.push({ id, sum: false }); hud(); },
     openDialog, advanceDialog, closeDialog, hud, computeFOV, computeIntents,
-    get music() { return { track: M.track, step: M.step, ctx: actx && actx.state }; },
+    get music() { return { track: M.track, want: M.want, step: M.step, ctx: actx && actx.state }; },
     musicLevel(ms) {
       return new Promise(res => {
         if (!M.bus) return res(0);
