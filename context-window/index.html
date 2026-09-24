@@ -182,6 +182,7 @@
       <span><span data-i18n="best">Best</span> <b id="best">0</b></span>
       <button class="link" id="mute" type="button">Sound: on</button>
       <button class="link" id="music" type="button">Music: on</button>
+      <button class="link" id="track" type="button">Track: Auto</button>
     </div>
   </div>
 
@@ -351,14 +352,14 @@
   // ---------- localization ----------
   const I18N = {
     en: {
-      floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off', musicOn: 'Music: on', musicOff: 'Music: off',
+      floor: 'Floor', score: 'Score', best: 'Best', soundOn: 'Sound: on', soundOff: 'Sound: off', musicOn: 'Music: on', musicOff: 'Music: off', track: 'Track', trackAuto: 'Auto',
       ctx: 'Context', ctxAria: 'Context window', gameAria: 'Game board', ready: 'ready',
       inTurns: n => `in ${n} ${n === 1 ? 'turn' : 'turns'}`, eff: p => `· ${p}% compression`,
       grepLeft: n => `Grep ${n} more`, allyLeft: n => `subagent ${n}`, frozen: '429: frozen',
       lgSys: 'system prompt', lgItems: 'items', lgOut: 'tool output', lgNoise: 'damage noise',
       hActions: 'Actions', hLog: 'Session log', hInv: 'In context', wait: 'Wait a turn', space: 'Space', padWait: 'wait',
       waitAria: 'Wait', up: 'Up', left: 'Left', right: 'Right', down: 'Down',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> sound, <kbd>N</kbd> music.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> or swipe to move, hold to run, step into an enemy to attack. <kbd>M</kbd> sound, <kbd>N</kbd> music, <kbd>T</kbd> track.',
       footer: 'Fan game. Not affiliated with or made by Anthropic.',
       daily: d => `Daily ${d}`, invEmpty: 'Empty. Items are scattered across floors.', forget: 'Forget',
       forgetTitle: n => `Remove ${n} from context`, summary: 'summary', notFound: n => `${n} not found yet`, perk: n => `Start with ${n}`,
@@ -436,14 +437,14 @@
       unlocked: l => `Unlocked: ${l}`,
     },
     ru: {
-      floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл',
+      floor: 'Этаж', score: 'Счёт', best: 'Рекорд', soundOn: 'Звук: вкл', soundOff: 'Звук: выкл', musicOn: 'Музыка: вкл', musicOff: 'Музыка: выкл', track: 'Трек', trackAuto: 'Авто',
       ctx: 'Контекст', ctxAria: 'Контекстное окно', gameAria: 'Игровое поле', ready: 'готова',
       inTurns: n => `через ${n} ${plural(n, 'ход', 'хода', 'ходов')}`, eff: p => `· сжатие ${p}%`,
       grepLeft: n => `Grep ещё ${n}`, allyLeft: n => `сабагент ${n}`, frozen: '429: заморожен',
       lgSys: 'системный промпт', lgItems: 'предметы', lgOut: 'вывод инструментов', lgNoise: 'шум от урона',
       hActions: 'Действия', hLog: 'Лог сессии', hInv: 'В контексте', wait: 'Ждать ход', space: 'Пробел', padWait: 'ждать',
       waitAria: 'Ждать', up: 'Вверх', left: 'Влево', right: 'Вправо', down: 'Вниз',
-      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук, <kbd>N</kbd> — музыка.',
+      keysHelp: '<kbd>←↑↓→</kbd>/<kbd>WASD</kbd> или свайп — ход, удержание — бег, шаг во врага — атака. <kbd>M</kbd> — звук, <kbd>N</kbd> — музыка, <kbd>T</kbd> — трек.',
       footer: 'Фанатская игра. Не связана с Anthropic и не является её продуктом.',
       daily: d => `Ежедневный ${d}`, invEmpty: 'Пусто. Предметы лежат на этажах.', forget: 'Забыть',
       forgetTitle: n => `Убрать ${n} из контекста`, summary: 'саммари', notFound: n => `${n} ещё не найден`, perk: n => `Старт с ${n}`,
@@ -591,22 +592,45 @@
 
   // ---------- music: a tiny step sequencer on top of WebAudio ----------
   let musicOn = store.get('cw-music') !== '0';
+  // bass: 'calm' = root on beats 1 and 3, 'drive' = root every 8th, 'octave' = root/octave bounce
   const TRACKS = {
     calm: {
-      bpm: 96, sub: 2,
+      name: 'Night Shift', bpm: 96, bass: 'calm', leadType: 'triangle', leadVol: 0.035, leadEvery: 2,
       chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]],
-      bass: [45, 41, 43, 40],
+      roots: [45, 41, 43, 40],
       lead: [76, 0, 74, 72, 74, 0, 69, 0, 72, 0, 74, 76, 77, 0, 76, 0, 74, 0, 71, 74, 79, 0, 77, 76, 74, 0, 71, 0, 69, 0, 0, 0],
-      leadEvery: 2, drums: false,
+      kicks: [], snares: [], hats: 'off',
+    },
+    upbeat: {
+      name: 'Ship It', bpm: 128, bass: 'octave', leadType: 'triangle', leadVol: 0.034, leadEvery: 1,
+      chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]],
+      roots: [36, 43, 45, 41],
+      lead: [72, 76, 79, 76, 84, 0, 79, 0, 74, 79, 83, 79, 86, 0, 83, 0, 76, 72, 69, 72, 76, 79, 81, 0, 77, 76, 74, 72, 74, 0, 72, 0],
+      kicks: [0, 4], snares: [2, 6], hats: 'all',
+    },
+    battle: {
+      name: 'Merge Rush', bpm: 160, bass: 'octave', leadType: 'square', leadVol: 0.02, leadEvery: 1,
+      chords: [[64, 67, 71], [60, 64, 67], [62, 66, 69], [59, 63, 66]],
+      roots: [40, 36, 38, 35],
+      lead: [76, 0, 79, 76, 83, 0, 81, 79, 79, 0, 76, 72, 76, 0, 79, 0, 78, 0, 81, 78, 86, 0, 85, 83, 81, 0, 78, 75, 71, 0, 0, 0],
+      kicks: [0, 3, 4, 6], snares: [2, 6], hats: 'all',
     },
     boss: {
-      bpm: 150, sub: 2,
+      name: 'Legacy Monolith', bpm: 150, bass: 'drive', leadType: 'triangle', leadVol: 0.035, leadEvery: 1,
       chords: [[62, 65, 69], [58, 62, 65], [60, 64, 67], [57, 61, 64]],
-      bass: [38, 34, 36, 33],
+      roots: [38, 34, 36, 33],
       lead: [74, 74, 0, 77, 76, 74, 0, 72, 70, 0, 72, 74, 77, 0, 74, 0, 72, 72, 0, 76, 79, 77, 76, 74, 73, 0, 76, 0, 81, 0, 0, 0],
-      leadEvery: 1, drums: true,
+      kicks: [0, 4], snares: [2, 6], hats: 'all',
     },
   };
+  const TRACK_PREFS = ['auto', 'calm', 'upbeat', 'battle', 'boss'];
+  let trackPref = TRACK_PREFS.includes(store.get('cw-track')) ? store.get('cw-track') : 'auto';
+  const REGULAR = ['calm', 'upbeat', 'battle'];
+  const regularTrack = floor => REGULAR[(Math.max(1, floor) - 1) % REGULAR.length];
+  function trackFor(floor, bossAlive) {
+    if (trackPref !== 'auto') return trackPref;
+    return bossAlive ? 'boss' : regularTrack(floor);
+  }
   const mfreq = m => 440 * Math.pow(2, (m - 69) / 12);
   const M = { track: null, step: 0, next: 0, timer: null, bus: null };
   function mnote(midi, t, dur, type, vol) {
@@ -637,23 +661,31 @@
   }
   function playStep(tr, step, t, sd) {
     const i = step % 32, bar = Math.floor(i / 8), beat = i % 8, loop = Math.floor(step / 32);
-    const chord = tr.chords[bar];
-    if (tr.drums || beat % 4 === 0) {
-      mnote(tr.bass[bar], t, sd * (tr.drums ? 0.9 : 1.8), 'triangle', tr.drums ? 0.09 : 0.08);
-    }
+    const chord = tr.chords[bar], root = tr.roots[bar];
+    if (tr.bass === 'calm') { if (beat % 4 === 0) mnote(root, t, sd * 1.8, 'triangle', 0.08); }
+    else if (tr.bass === 'drive') mnote(root, t, sd * 0.9, 'triangle', 0.09);
+    else mnote(root + (beat % 2 ? 12 : 0), t, sd * 0.85, 'triangle', 0.09);
     const arp = [0, 1, 2, 1, 0, 1, 2, 1][beat];
     mnote(chord[arp] + 12, t, sd * 0.8, 'square', 0.012);
-    if (loop % tr.leadEvery === tr.leadEvery - 1 || tr.leadEvery === 1) {
+    if (loop % tr.leadEvery === tr.leadEvery - 1) {
       const n = tr.lead[i];
-      if (n) mnote(n, t, sd * 1.6, 'triangle', 0.035);
+      if (n) mnote(n, t, sd * 1.6, tr.leadType, tr.leadVol);
     }
-    if (tr.drums) {
-      if (beat % 4 === 0) mdrum('kick', t);
-      if (beat % 4 === 2) mdrum('snare', t);
-      mdrum('hat', t);
-    } else if (beat % 2 === 1) {
-      mdrum('hat', t);
-    }
+    if (tr.kicks.includes(beat)) mdrum('kick', t);
+    if (tr.snares.includes(beat)) mdrum('snare', t);
+    if (tr.hats === 'all' || (tr.hats === 'off' && beat % 2 === 1)) mdrum('hat', t);
+  }
+  function trackLabel() {
+    return `${tr('track')}: ${trackPref === 'auto' ? tr('trackAuto') : TRACKS[trackPref].name}`;
+  }
+  function cycleTrack() {
+    trackPref = TRACK_PREFS[(TRACK_PREFS.indexOf(trackPref) + 1) % TRACK_PREFS.length];
+    store.set('cw-track', trackPref);
+    audioOn();
+    const inGame = G && G.started && !G.over;
+    const want = inGame ? trackFor(G.floor, G.boss && !G.boss.dead) : (trackPref === 'auto' ? 'calm' : trackPref);
+    if (musicOn) musicPlay(want); else M.want = want;
+    syncMusicButtons();
   }
   function musicTick() {
     if (!actx || !M.track) return;
@@ -870,7 +902,7 @@
     computeIntents();
     if (G.floor > 1) log(bossFloor ? tr('l_floorBoss', G.floor) : tr('l_floor', G.floor), 'sys');
     if (bossFloor) hint('boss');
-    if (G.started) musicPlay(bossFloor ? 'boss' : 'calm');
+    if (G.started) musicPlay(trackFor(G.floor, bossFloor));
   }
 
   // ---------- FOV ----------
@@ -1084,7 +1116,7 @@
     log(tr('l_module', 4 - left), 'ok');
     if (left === 0) {
       B.dead = true; B.slam = false;
-      musicPlay('calm');
+      musicPlay(trackFor(G.floor, false));
       stairs = { x: B.bx, y: B.by };
       G.score += 300; G.stats.bosses++;
       shake(0.5); sfx('boss');
@@ -2039,6 +2071,7 @@
         <button class="link" type="button" data-lang="ru" aria-pressed="${LANG === 'ru'}">Русский</button>
         <button class="link" type="button" id="card-mute" aria-pressed="${!muted}">${muted ? tr('soundOff') : tr('soundOn')}</button>
         <button class="link" type="button" id="card-music" aria-pressed="${musicOn}">${musicOn ? tr('musicOn') : tr('musicOff')}</button>
+        <button class="link" type="button" id="card-track">${trackLabel()}</button>
       </div>`;
   }
   function showStart() {
@@ -2066,6 +2099,8 @@
     const cm = el('card-mute');
     const cmu = el('card-music');
     if (cmu) cmu.addEventListener('click', toggleMusic);
+    const ctk = el('card-track');
+    if (ctk) ctk.addEventListener('click', cycleTrack);
     if (cm) cm.addEventListener('click', () => { toggleMute(); cm.textContent = muted ? tr('soundOff') : tr('soundOn'); cm.setAttribute('aria-pressed', String(!muted)); });
     wireButtons();
   }
@@ -2074,7 +2109,7 @@
     newGame(mode || 'normal');
     G.started = true;
     overlay.hidden = true;
-    musicPlay(G.floor % 5 === 0 ? 'boss' : 'calm');
+    musicPlay(trackFor(G.floor, G.floor % 5 === 0));
     hud();
   }
   function showDeath() {
@@ -2147,7 +2182,7 @@
   function toggleMusic() {
     musicOn = !musicOn;
     store.set('cw-music', musicOn ? '1' : '0');
-    if (musicOn) { audioOn(); if (G && G.started && !G.over) musicPlay(M.want || 'calm'); }
+    if (musicOn) { audioOn(); musicPlay(M.want || (G && G.started ? trackFor(G.floor, G.boss && !G.boss.dead) : 'calm')); }
     else { const w = M.track || M.want; musicStop(); M.want = w; }
     syncMusicButtons();
   }
@@ -2156,6 +2191,9 @@
     el('music').textContent = t;
     const cm = el('card-music');
     if (cm) { cm.textContent = t; cm.setAttribute('aria-pressed', String(musicOn)); }
+    el('track').textContent = trackLabel();
+    const ct = el('card-track');
+    if (ct) ct.textContent = trackLabel();
   }
 
   window.addEventListener('keydown', e => {
@@ -2163,6 +2201,7 @@
     audioOn();
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyN') { toggleMusic(); return; }
+    if (e.code === 'KeyT') { cycleTrack(); return; }
     if (!G.started || G.over) {
       if (e.key === 'Enter' && !overlay.hidden && (!G.over || G.deathShown) && !(e.target && e.target.tagName === 'BUTTON')) { e.preventDefault(); start('normal'); }
       return;
@@ -2208,6 +2247,7 @@
   el('b-wait').addEventListener('click', () => act('wait'));
   el('mute').addEventListener('click', toggleMute);
   el('music').addEventListener('click', toggleMusic);
+  el('track').addEventListener('click', cycleTrack);
 
   // ---------- boot ----------
   applyStatic();

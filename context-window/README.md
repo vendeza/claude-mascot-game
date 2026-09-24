@@ -6,7 +6,7 @@ A fan-made turn-based browser roguelike. Clawd descends through repository floor
 - `/compact` squeezes noise and tool output, gets weaker with every use, and may turn items into summaries.
 - Tools: Read, Grep, Bash. Items: CLAUDE.md, Extended Thinking, Prompt Cache, Subagent, Cache Hit, /clear.
 - Enemies: Bug, Hallucination, Infinite Loop, Merge Conflict, Flaky Test, Rate Limiter. Every 5th floor holds the boss Legacy Monolith.
-- Enemy intents, run interruption, minimap, synthesized sound effects (M) and chiptune music (N), first-run hints.
+- Enemy intents, run interruption, minimap, synthesized sound effects (M) and chiptune music with four tracks (N toggles, T picks a track), first-run hints.
 - Commits from each run unlock starting items. The daily run uses the same seed for everyone.
 
 Single `index.html`, no dependencies. Open it in a browser to play.
