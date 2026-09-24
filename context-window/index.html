@@ -423,7 +423,7 @@
   const HP_STEP = { bug: 3, ghost: 4, loop: 4, merge: 5, flaky: 4, limiter: 5 };
   const PERKS = [
     { at: 400, item: 'grep' },
-    { at: 1200, item: 'subagent' },
+    { at: 1200, item: 'bash' },
     { at: 2500, item: 'pcache' },
     { at: 4500, item: 'claudemd' },
   ];
@@ -490,8 +490,8 @@
       hx_grep: 'Reveals the whole floor for 12 turns: map, enemies and the git push stairs.',
       hx_bash: 'Deals 2 damage to all 8 tiles around you. 1 time in 10 you get Permission denied and lose the turn.',
       hx_compact: 'Squeezes damage noise and tool output: 70% the first time, 8% less each time after, never below 40%. Items may turn into summaries (half the size, half the power). Recharges for 15 turns. Fires on its own when the context hits 100% and it is ready.',
-      hx_sub: 'One use. Spawns a clone next to you that hunts enemies for 12 turns. Its fights never touch your context.',
-      hx_clear: 'One use. Wipes the whole context to zero, but you forget every item too.',
+      hx_sub: 'One use. Spawns a clone next to you that hunts enemies for 36 turns. Its fights never touch your context. You start with one.',
+      hx_clear: 'One use. Wipes the whole context to zero, but you forget every item too. You start with one.',
       helpFoot: 'Tools and items are found on floors; greyed-out buttons mean you don\u2019t have that one yet. Prompt Cache lowers the costs shown on the buttons.',
       menu: 'Menu', settings: 'Settings', sfxVol: 'Sound effects', musVol: 'Music', on: 'On', off: 'Off',
       resume: 'Resume', back: 'Back', restart: 'New session', restartConfirm: 'Lose progress? Click again',
@@ -512,7 +512,7 @@
       d_claudemd: () => 'Compaction never summarizes your items',
       d_thinking: s => s ? '+1 damage at 50% chance, each hit +1k' : '+1 damage, but each hit adds 1k output',
       d_pcache: s => `Tools cost ${s ? 25 : 50}% less`,
-      d_subagent: () => 'A clone fights for 12 turns; its damage never enters your context',
+      d_subagent: () => 'A clone fights for 36 turns; its damage never enters your context',
       d_clear: () => 'Wipes the context, items included',
       d_cache: () => '−25k noise',
       h_enemy: 'Enemy in sight. <b>Step into it</b> to attack. Arrows above enemies show their next move, <b>!</b> means a hit.',
@@ -550,7 +550,7 @@
       l_bash: (h, k) => `Bash: hit ${h}, fixed ${k}`,
       l_noSub: 'No Subagent in context',
       l_subNoSpace: 'No room to spawn a subagent: every adjacent tile is taken',
-      l_subStart: 'Subagent launched for 12 turns',
+      l_subStart: 'Subagent launched for 36 turns',
       l_subDone: 'Subagent finished its task',
       l_compact: (auto, eff, b, a, list) => `${auto ? 'Auto-compaction' : '/compact'} (${eff}%): ${b}k → ${a}k${list ? '. Summarized: ' + list : ''}`,
       l_cdWait: n => `/compact is recharging, ${n} ${n === 1 ? 'turn' : 'turns'} left`,
@@ -615,8 +615,8 @@
       hx_grep: 'Показывает весь этаж на 12 ходов: карту, врагов и лестницу git push.',
       hx_bash: 'Наносит 2 урона по всем 8 клеткам вокруг тебя. В 1 случае из 10 — Permission denied, и ход потерян.',
       hx_compact: 'Сжимает шум от урона и вывод инструментов: в первый раз на 70%, дальше каждый раз на 8% слабее, но не меньше 40%. Предметы могут превратиться в саммари (вдвое меньше места и вдвое слабее). Перезарядка 15 ходов. Срабатывает сама, когда контекст дошёл до 100%, если готова.',
-      hx_sub: 'Одноразовый. Рядом появляется клон, который 12 ходов сам ищет врагов. Его драки не тратят твой контекст.',
-      hx_clear: 'Одноразовый. Обнуляет весь контекст, но все предметы тоже забываются.',
+      hx_sub: 'Одноразовый. Рядом появляется клон, который 36 ходов сам ищет врагов. Его драки не тратят твой контекст. Один есть с самого начала.',
+      hx_clear: 'Одноразовый. Обнуляет весь контекст, но все предметы тоже забываются. Один есть с самого начала.',
       helpFoot: 'Инструменты и предметы лежат на этажах; бледная кнопка значит, что этого у тебя пока нет. Prompt Cache снижает цены, которые показаны на кнопках.',
       menu: 'Меню', settings: 'Настройки', sfxVol: 'Звуковые эффекты', musVol: 'Музыка', on: 'Вкл', off: 'Выкл',
       resume: 'Продолжить', back: 'Назад', restart: 'Новая сессия', restartConfirm: 'Потерять прогресс? Нажми ещё раз',
@@ -637,7 +637,7 @@
       d_claudemd: () => 'Компакция не сжимает предметы',
       d_thinking: s => s ? 'Удар +1 с шансом 50%, каждый удар +1k' : 'Удар +1, но каждый удар +1k к выводу',
       d_pcache: s => `Инструменты дешевле на ${s ? 25 : 50}%`,
-      d_subagent: () => 'Клон воюет 12 ходов, его урон не идёт в твой контекст',
+      d_subagent: () => 'Клон воюет 36 ходов, его урон не идёт в твой контекст',
       d_clear: () => 'Обнуляет контекст вместе с предметами',
       d_cache: () => '−25k шума',
       h_enemy: 'Враг в поле зрения. <b>Шаг в него</b> — атака. Стрелки над врагами показывают их следующий ход, <b>!</b> — удар.',
@@ -675,7 +675,7 @@
       l_bash: (h, k) => `Bash: задето ${h}, устранено ${k}`,
       l_noSub: 'Subagent нет в контексте',
       l_subNoSpace: 'Некуда заспавнить сабагента: все клетки рядом заняты',
-      l_subStart: 'Сабагент запущен на 12 ходов',
+      l_subStart: 'Сабагент запущен на 36 ходов',
       l_subDone: 'Сабагент завершил задачу',
       l_compact: (auto, eff, b, a, list) => `${auto ? 'Авто-компакция' : '/compact'} (${eff}%): ${b}k → ${a}k${list ? '. В саммари: ' + list : ''}`,
       l_cdWait: n => `/compact перезаряжается ещё ${n} ${plural(n, 'ход', 'хода', 'ходов')}`,
@@ -1243,7 +1243,7 @@
     seedRng(daily ? td.seed : (Math.random() * 2 ** 32) >>> 0);
     G = {
       mode: daily ? 'daily' : 'normal', dailyLabel: td.label,
-      floor: 0, score: 0, turn: 0, items: [{ id: 'read', sum: false }], noise: 0, output: 0, cd: 0, grep: 0,
+      floor: 0, score: 0, turn: 0, items: [{ id: 'read', sum: false }, { id: 'subagent', sum: false }, { id: 'clear', sum: false }], noise: 0, output: 0, cd: 0, grep: 0,
       over: false, deathShown: false, started: false, trans: null, queue: null, log: [], killedBy: '',
       frozen: 0, frozenT: 0, shake: 0, hitstop: 0, interrupt: false, knownVisible: new Set(), boss: null,
       stats: { kills: 0, compactions: 0, noise: 0, tools: 0, bosses: 0 }
@@ -1462,7 +1462,7 @@
     const spot = adjacentFree(P.x, P.y);
     if (!spot) { log(tr('l_subNoSpace')); return false; }
     G.items = G.items.filter(i => i.id !== 'subagent');
-    allies.push({ x: spot[0], y: spot[1], px: P.x, py: P.y, moveT: 0, life: 12, atkT: 1, adx: 0, ady: 0, face: P.face });
+    allies.push({ x: spot[0], y: spot[1], px: P.x, py: P.y, moveT: 0, life: 36, atkT: 1, adx: 0, ady: 0, face: P.face });
     sfx('ally');
     burst(wx(spot[0]), wy(spot[1]), 12, COL.ally, 30, wy(spot[1]));
     text('Task(subagent)', COL.ally, wx(P.x), wy(P.y) - 26);
@@ -2182,7 +2182,7 @@
     ctx.drawImage(spr, -12, -16);
     ctx.restore();
     ctx.fillStyle = COL.ally;
-    for (let i = 0; i < Math.min(a.life, 12); i++) ctx.fillRect(Math.round(rx(a)) - 6 + i, Math.round(ry(a)) - 15, 1, 1);
+    for (let i = 0; i < Math.min(Math.ceil(a.life / 3), 12); i++) ctx.fillRect(Math.round(rx(a)) - 6 + i, Math.round(ry(a)) - 15, 1, 1);
   }
   function drawIntent(e, cx, cy) {
     if (!e.intent || !vis[idx(e.x, e.y)]) return;
