@@ -754,7 +754,9 @@
     },
   };
   const TRACK_PREFS = ['auto', 'calm', 'upbeat', 'battle', 'boss'];
-  let trackPref = TRACK_PREFS.includes(store.get('cw-track')) ? store.get('cw-track') : 'auto';
+  // a pinned track lasts only for this visit; older versions saved it and got stuck on one track
+  let trackPref = 'auto';
+  try { localStorage.removeItem('cw-track'); } catch (e) {}
   // Auto: rotate every two floors (Ship It, Merge Rush, Legacy Monolith), boss floors always
   // play Legacy Monolith; menus play Night Shift
   const ROTATION = ['upbeat', 'battle', 'boss'];
@@ -816,7 +818,6 @@
   }
   function cycleTrack() {
     trackPref = TRACK_PREFS[(TRACK_PREFS.indexOf(trackPref) + 1) % TRACK_PREFS.length];
-    store.set('cw-track', trackPref);
     audioOn();
     const inGame = G && G.started && !G.over;
     const want = inGame ? trackFor(G.floor) : menuTrack();
